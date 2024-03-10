@@ -18,7 +18,7 @@ We suggest gradio for a visualized inference.
 gradio app.py
 ```
 
-
+![1710081811132](https://github.com/thu-ml/CRM/assets/40787266/04c5c503-6abc-408e-91f4-5d95cfdd41ab)
 
 ## Acknowledgement
 - [ImageDream](https://github.com/bytedance/ImageDream)
