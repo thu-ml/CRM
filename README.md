@@ -4,9 +4,7 @@ Official implementation for *CRM: Single Image to 3D Textured Mesh with Convolut
 
 ## [Project Page](https://ml.cs.tsinghua.edu.cn/~zhengyi/CRM/) | Arxiv (Soon) | [HF-Demo](https://huggingface.co/spaces/Zhengyi/CRM) | [Weights](https://huggingface.co/Zhengyi/CRM)
 
-
-https://github.com/thu-ml/CRM/assets/40787266/913afed9-301a-4238-a21a-4e4592ee46f7
-
+https://github.com/thu-ml/CRM/assets/40787266/1792d7e3-3b37-486c-ac7e-b181c67166dd
 
 ## Install
 
@@ -20,7 +18,7 @@ We suggest gradio for a visualized inference.
 gradio app.py
 ```
 
-![1710080367054](https://github.com/thu-ml/CRM/assets/40787266/d8cf6dcc-00aa-4c3f-8125-4fb7950face9)
+
 
 ## Acknowledgement
 - [ImageDream](https://github.com/bytedance/ImageDream)
