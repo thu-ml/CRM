@@ -2,7 +2,7 @@
 
 Official implementation for *CRM: Single Image to 3D Textured Mesh with Convolutional Reconstruction Model*.
 
-## [Project Page](https://ml.cs.tsinghua.edu.cn/~zhengyi/CRM/) | Arxiv (Soon) | [HF-Demo](https://huggingface.co/spaces/Zhengyi/CRM) | [Weights](https://huggingface.co/Zhengyi/CRM)
+## [Project Page](https://ml.cs.tsinghua.edu.cn/~zhengyi/CRM/) | [Arxiv](https://arxiv.org/abs/2403.05034) | [HF-Demo](https://huggingface.co/spaces/Zhengyi/CRM) | [Weights](https://huggingface.co/Zhengyi/CRM)
 
 https://github.com/thu-ml/CRM/assets/40787266/1792d7e3-3b37-486c-ac7e-b181c67166dd
 
@@ -32,7 +32,7 @@ gradio app.py
 @article{wang2024crm,
   title={CRM: Single Image to 3D Textured Mesh with Convolutional Reconstruction Model},
   author={Zhengyi Wang and Yikai Wang and Yifei Chen and Chendong Xiang and Shuo Chen and Dajiang Yu and Chongxuan Li and Hang Su and Jun Zhu},
-  journal={arXiv preprint arXiv:TODO},
+  journal={arXiv preprint arXiv:2403.05034},
   year={2024}
 }
 ```
