@@ -6,7 +6,7 @@ Official implementation for *CRM: Single Image to 3D Textured Mesh with Convolut
 
 https://github.com/thu-ml/CRM/assets/40787266/04a202fe-e35a-4549-b416-84c1f338f0f1
 
-## Try CRM 🍻
+## Try CRM to generate 3D textured mesh in 10 seconds 🍻
 * Try CRM at [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM).
 * Try CRM at [Replicate Demo](https://replicate.com/camenduru/crm). Thanks [@camenduru](https://github.com/camenduru)! 
 
