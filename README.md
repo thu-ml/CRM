@@ -2,11 +2,13 @@
 
 Official implementation for *CRM: Single Image to 3D Textured Mesh with Convolutional Reconstruction Model*.
 
+**CRM is a feed-forward model which can generate 3D textured mesh in 10 seconds.**
+
 ## [Project Page](https://ml.cs.tsinghua.edu.cn/~zhengyi/CRM/) | [Arxiv](https://arxiv.org/abs/2403.05034) | [HF-Demo](https://huggingface.co/spaces/Zhengyi/CRM) | [Weights](https://huggingface.co/Zhengyi/CRM)
 
 https://github.com/thu-ml/CRM/assets/40787266/04a202fe-e35a-4549-b416-84c1f338f0f1
 
-## Try CRM to generate 3D textured mesh in 10 seconds 🍻
+## Try CRM 🍻
 * Try CRM at [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM).
 * Try CRM at [Replicate Demo](https://replicate.com/camenduru/crm). Thanks [@camenduru](https://github.com/camenduru)! 
 
