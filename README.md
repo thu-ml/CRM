@@ -6,7 +6,7 @@ Official implementation for *CRM: Single Image to 3D Textured Mesh with Convolut
 
 ## [Project Page](https://ml.cs.tsinghua.edu.cn/~zhengyi/CRM/) | [Arxiv](https://arxiv.org/abs/2403.05034) | [HF-Demo](https://huggingface.co/spaces/Zhengyi/CRM) | [Weights](https://huggingface.co/Zhengyi/CRM)
 
-https://github.com/thu-ml/CRM/assets/40787266/04a202fe-e35a-4549-b416-84c1f338f0f1
+https://github.com/thu-ml/CRM/assets/40787266/8b325bc0-aa74-4c26-92e8-a8f0c1079382
 
 ## Try CRM 🍻
 * Try CRM at [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM).
