@@ -26,6 +26,13 @@ gradio app.py
 
 ![image](https://github.com/thu-ml/CRM/assets/40787266/4354d22a-a641-4531-8408-c761ead8b1a2)
 
+
+## Todo List
+- [x] Release inference code.
+- [x] Release pretrained models.
+- [ ] Optimize inference code to fit in low memery GPU.
+- [ ] Upload training code.
+
 ## Acknowledgement
 - [ImageDream](https://github.com/bytedance/ImageDream)
 - [nvdiffrast](https://github.com/NVlabs/nvdiffrast)
