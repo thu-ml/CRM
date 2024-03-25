@@ -7,13 +7,10 @@ transformers==4.27.1
 open-clip-torch==2.7.0
 opencv-contrib-python-headless==4.9.0.80
 opencv-python-headless==4.9.0.80
-xformers
 omegaconf
 rembg
-git+https://github.com/NVlabs/nvdiffrast
 pygltflib
 kiui
 trimesh
 xatlas
-ninja
 pymeshlab
