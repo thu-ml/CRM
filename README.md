@@ -52,6 +52,14 @@ gradio app.py
 
 ![image](https://github.com/thu-ml/CRM/assets/40787266/4354d22a-a641-4531-8408-c761ead8b1a2)
 
+For inference in command lines, simply run
+```bash
+CUDA_VISIBLE_DEVICES="0" python run.py --inputdir "examples/kunkun.webp"
+```
+It will output the preprocessed image, generated 6-view images and CCMs and a 3D model in obj format.
+
+**Tips:** (1) If the result is unsatisfatory, please check whether the input image is correctly pre-processed into a grey background. Otherwise the results will be unpredictable.
+(2) Different from the [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM), this official implementation uses UV texture instead of vertex color. It has better texture than the online demo but longer generating time owing to the UV texturing.
 
 ## Todo List
 - [x] Release inference code.
