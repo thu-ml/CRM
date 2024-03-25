@@ -41,7 +41,7 @@ def check_input_image(input_image):
 
 def remove_background(
     image: PIL.Image.Image,
-    rembg_session: Any = None,
+    rembg_session = None,
     force: bool = False,
     **rembg_kwargs,
 ) -> PIL.Image.Image:
@@ -169,7 +169,7 @@ with gr.Blocks() as demo:
                         background_choice = gr.Radio([
                                 "Alpha as mask",
                                 "Auto Remove background"
-                            ], value="Alpha as mask",
+                            ], value="Auto Remove background",
                             label="backgroud choice")
                         # do_remove_background = gr.Checkbox(label=, value=True)
                         # force_remove = gr.Checkbox(label=, value=False)
