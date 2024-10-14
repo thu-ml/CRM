@@ -61,6 +61,10 @@ It will output the preprocessed image, generated 6-view images and CCMs and a 3D
 **Tips:** (1) If the result is unsatisfatory, please check whether the input image is correctly pre-processed into a grey background. Otherwise the results will be unpredictable.
 (2) Different from the [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM), this official implementation uses UV texture instead of vertex color. It has better texture than the online demo but longer generating time owing to the UV texturing.
 
+## train
+We provide training script for multivew generation and their data requirements see `launch_train.sh`.
+
+
 ## Todo List
 - [x] Release inference code.
 - [x] Release pretrained models.

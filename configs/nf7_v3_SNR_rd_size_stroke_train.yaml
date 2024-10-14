@@ -1,0 +1,90 @@
+config:
+# others
+    seed: 1234
+    num_frames: 7
+    mode: pixel
+    offset_noise: true
+# model related
+    models:
+        config: imagedream/configs/sd_v2_base_ipmv_zero_SNR.yaml
+        resume: release_models/sd-v2.1-base-4view-ipmv.pt
+# sampler related
+    sampler:
+        target: libs.sample.ImageDreamDiffusion
+        params:
+            mode: pixel
+            num_frames: 7
+            camera_views: [1, 2, 3, 4, 5, 0, 0]
+            ref_position: 6
+            random_background: false
+            offset_noise: true
+            resize_rate: 1.0
+
+# config datasets
+    train_data:
+        target: libs.data.DataRelativeStroke
+        params:
+            base_dir: train_examples
+            caption_csv: train_examples/caption.csv
+            image_size: 256
+            repeat: 1
+            camera_views: [1, 2, 3, 4, 5, 0, 0]
+            ref_indexs: [0, 1, 3, 4, 5, 2]
+            ref_position: 6
+            split: train
+            num_frames: 7
+            random_background: true
+            resize_rate: 0.95
+            stroke_p: 0.5
+            eval_size: 100
+            resize_range:
+                - 0.5
+                - 1.0
+    eval_data:
+        target: libs.data.DataRelativeStroke
+        params:
+            base_dir: train_examples
+            caption_csv: train_examples/caption.csv
+            image_size: 256
+            repeat: 1
+            camera_views: [1, 2, 3, 4, 5, 0, 0] # camera views are relative views
+            ref_indexs: [0, 1, 3, 4, 5, 2]
+            ref_position: 6
+            split: eval
+            num_frames: 7
+            random_background: true
+            resize_rate: 0.95
+            stroke_p: 0.5
+            eval_size: 100
+            resize_range:
+                - 0.5
+                - 1.0
+    
+    in_the_wild_images:
+        target: libs.data.InTheWildImages
+        params:
+            base_dirs:
+                - examples
+
+#  optimizer related
+    optimizer:
+        lr: 5e-5
+    gradient_accumulation_steps: 12
+
+# wandb related parameters
+    project: CRM
+    wandb_run_name: CRM-pixel
+    wandb_mode: offline
+
+
+# training hyperparmeters
+    batch_size: 16
+    dataloader:
+        num_workers: 10
+        shuffle: true
+        drop_last: true
+    
+    save_interval: 600000
+    log_interval: 5000
+    eval_interval: 300000
+    max_step: 10000000
