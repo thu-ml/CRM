@@ -61,11 +61,61 @@ It will output the preprocessed image, generated 6-view images and CCMs and a 3D
 **Tips:** (1) If the result is unsatisfatory, please check whether the input image is correctly pre-processed into a grey background. Otherwise the results will be unpredictable.
 (2) Different from the [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM), this official implementation uses UV texture instead of vertex color. It has better texture than the online demo but longer generating time owing to the UV texturing.
 
+## Train
+We provide training script for multivew generation and their data requirements.
+To launch a simple one instance overfit training of multivew gen:
+```shell
+accelerate launch $accelerate_args train.py --config configs/nf7_v3_SNR_rd_size_stroke_train.yaml \
+    config.batch_size=1 \
+    config.eval_interval=100
+```
+To launch a simple one instance overfit training of CCM gen:
+```shell
+accelerate launch $accelerate_args train_stage2.py --config configs/stage2-v2-snr_train.yaml \
+    config.batch_size=1 \
+    config.eval_interval=100
+```
+
+### data prepare
+To specify the data dir modify the following params in the configs/xxxx.yaml
+```yaml
+    base_dir: <path to multiview piexl image basedir>
+    xyz_base: <path to related CCM image basedir>
+    caption_csv: <path to caption.csv>
+```
+The file tree of basedirs should satisfy as following:
+```shell
+base_dir
+├── uid1
+│   ├── 000.png
+│   ├── 001.png
+│   ├── 002.png
+│   ├── 003.png
+│   ├── 004.png
+│   ├── 005.png
+├── uid2
+....
+
+xyz_base
+├── uid1
+│   ├── xyz_new_000.png
+│   ├── xyz_new_001.png
+│   ├── xyz_new_002.png
+│   ├── xyz_new_003.png
+│   ├── xyz_new_004.png
+│   └── xyz_new_005.png
+├── uid2
+....
+```
+The `train_example` dir shows a minimal case of train data and `caption.csv` file.
+
+
+
 ## Todo List
 - [x] Release inference code.
 - [x] Release pretrained models.
 - [ ] Optimize inference code to fit in low memery GPU.
-- [ ] Upload training code.
+- [x] Upload training code.
 
 ## Acknowledgement
 - [ImageDream](https://github.com/bytedance/ImageDream)
