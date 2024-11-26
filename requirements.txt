@@ -1,5 +1,5 @@
 gradio
-huggingface-hub
+huggingface-hub==0.21.0
 diffusers==0.24.0
 einops==0.7.0
 Pillow==10.1.0
@@ -14,3 +14,7 @@ kiui
 trimesh
 xatlas
 pymeshlab
+numpy==1.25.2
+pyarrow
+accelerate
+triton

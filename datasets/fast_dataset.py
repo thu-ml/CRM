@@ -17,7 +17,7 @@ import trimesh
 from tqdm import tqdm
 from .dataset import Dataset
 from util import utils, renderer
-from util.utils import SHAPENET_MAX_DEPTH, DEPTH_MAX, DEPTH_MIN, DEPTH_VALID_MIN, DEPTH_VALID_MAX
+from util.utils import DEPTH_MAX, DEPTH_MIN, DEPTH_VALID_MIN, DEPTH_VALID_MAX
 import json
 import cv2
 from PIL import Image
@@ -91,7 +91,7 @@ class FastDataset(Dataset):
         self.dep_sill_mode = train_specs.get('dep&sill_sup_mode')
 
         # self.mode = input_specs['mode']
-        self.pcd_dir = input_specs['pcd_dir']
+        # self.pcd_dir = input_specs['pcd_dir']
         self.mesh_dir = input_specs['mesh_dir']
         self.class_name = input_specs['class']
         self.camera_angle_num = input_specs['camera_angle_num']
@@ -159,8 +159,8 @@ class FastDataset(Dataset):
         self._loaded_uuid = None
         self._loaded_verts_list = None
         self._loaded_faces_list = None
-        self._loaded_pcd_list = None
-        self._loaded_pcd_colors_list = None
+        # self._loaded_pcd_list = None
+        # self._loaded_pcd_colors_list = None
         self._loaded_render_color_img_list = None
         self._loaded_render_depth_img_list = None
         self._loaded_render_color_cam_list = None
@@ -173,7 +173,7 @@ class FastDataset(Dataset):
         self._chosen = None
 
     def load_chunk(self) -> None:
-        chosen, self._loaded_verts_list, self._loaded_faces_list, self._loaded_pcd_list, self._loaded_pcd_colors_list, \
+        chosen, self._loaded_verts_list, self._loaded_faces_list, \
             self._loaded_render_color_img_list, self._loaded_render_depth_img_list, \
             self._loaded_render_color_cam_list, self._loaded_fovx_list, \
             self._loaded_triview_color_img_list, self._loaded_triview_xyz_img_list, self._loaded_prompt, self._loaded_uuid= \
@@ -283,9 +283,9 @@ class FastDataset(Dataset):
                 mvp, campos, persp, iter_res
             )
 
-        pcd_num = len(self._loaded_pcd_list[idx])
-        index = random.sample(range(pcd_num), k=self.pts_num)
-        index_query = random.sample(range(pcd_num), k=self.query_pts_num)
+        # pcd_num = len(self._loaded_pcd_list[idx])
+        # index = random.sample(range(pcd_num), k=self.pts_num)
+        # index_query = random.sample(range(pcd_num), k=self.query_pts_num)
 
         res = {
             # 'verts': self.verts[None, ...],
@@ -293,10 +293,10 @@ class FastDataset(Dataset):
             'uuid': self._loaded_uuid[idx],
             'gt_verts': self._loaded_verts_list[idx],
             'gt_faces': self._loaded_faces_list[idx],
-            'gt_pcd': self._loaded_pcd_list[idx][None, index, ...],
-            'gt_pcd_colors': self._loaded_pcd_colors_list[idx][None, index, ...],
-            'gt_pcd_colors_query': self._loaded_pcd_colors_list[idx][None, index_query, ],
-            'gt_pcd_query': self._loaded_pcd_list[idx][None, index_query, ],
+            # 'gt_pcd': self._loaded_pcd_list[idx][None, index, ...],
+            # 'gt_pcd_colors': self._loaded_pcd_colors_list[idx][None, index, ...],
+            # 'gt_pcd_colors_query': self._loaded_pcd_colors_list[idx][None, index_query, ],
+            # 'gt_pcd_query': self._loaded_pcd_list[idx][None, index_query, ],
             'gt_render_imgs': imgs[None,],
             'mv': mv[None, ],
             'mvp': mvp[None, ],
@@ -373,12 +373,12 @@ class FastDataset(Dataset):
         faces_list = [torch.LongTensor(np.stack(
             [pandas_chunk[f'faces_list_{j}'][i] for j in range(3)], axis=-1)
         ) for i in range(num_rows)]
-        pcd_list = [torch.FloatTensor(np.stack(
-            [pandas_chunk[f'pcd_list_{j}'][i] for j in range(3)], axis=-1)
-        ) for i in range(num_rows)]
-        pcd_colors_list = [torch.FloatTensor(np.stack(
-            [pandas_chunk[f'pcd_colors_list_{j}'][i] for j in range(3)], axis=-1)
-        ) for i in range(num_rows)]
+        # pcd_list = [torch.FloatTensor(np.stack(
+        #     [pandas_chunk[f'pcd_list_{j}'][i] for j in range(3)], axis=-1)
+        # ) for i in range(num_rows)]
+        # pcd_colors_list = [torch.FloatTensor(np.stack(
+        #     [pandas_chunk[f'pcd_colors_list_{j}'][i] for j in range(3)], axis=-1)
+        # ) for i in range(num_rows)]
         uuid = [str(pandas_chunk['uuid'][i]) for i in range(num_rows)]
 
         render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list = None, None, None, None
@@ -411,7 +411,7 @@ class FastDataset(Dataset):
         if self.prompt_path != '':
             prompt = [str(pandas_chunk['prompt'][i]) for i in range(num_rows)]
 
-        return str(chosen), verts_list, faces_list, pcd_list, pcd_colors_list, \
+        return str(chosen), verts_list, faces_list, \
                render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list, \
                triview_color_img_list, triview_xyz_img_list, prompt, uuid
         
@@ -423,7 +423,7 @@ class FastDataset(Dataset):
             logging.info(f"process index {self.process_index} start {data_index}")
         
         gt_path = data['gt_path']
-        pcd_file = data['pcd_file']
+        # pcd_file = data['pcd_file']
 
         gt_bytes = await aread_file(gt_path)
         ref_mesh = trimesh.load(io.BytesIO(gt_bytes), 
@@ -431,11 +431,11 @@ class FastDataset(Dataset):
         verts = torch.tensor(ref_mesh.vertices, dtype=torch.float32)
         faces = torch.LongTensor(ref_mesh.faces)
         
-        pcd_bytes = await aread_file(pcd_file)
+        # pcd_bytes = await aread_file(pcd_file)
         # load point cloud
-        pcd = trimesh.load(io.BytesIO(pcd_bytes), file_type=Path(pcd_file).suffix)
+        # pcd = trimesh.load(io.BytesIO(pcd_bytes), file_type=Path(pcd_file).suffix)
 
-        pcd_tr = torch.tensor(pcd.vertices, dtype=torch.float32)
+        # pcd_tr = torch.tensor(pcd.vertices, dtype=torch.float32)
         gt_render_imgs = None
         gt_render_depths = None
         gt_transforms = None
@@ -448,65 +448,65 @@ class FastDataset(Dataset):
             verts = verts[:, [0, 2, 1]]
 
             # color, normalized to [-1, 1]
-            pcd_colors = ((2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255) / 255)[..., :3]
+            # pcd_colors = ((2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255) / 255)[..., :3]
 
-            if self.dataset_name == 'ShapeNet':
+            # if self.dataset_name == 'ShapeNet':
                 
-                metadata = json.loads(await aread_file(render_color_cam_file, "r"))
+            #     metadata = json.loads(await aread_file(render_color_cam_file, "r"))
                 
-                verts *= self.scale / 0.5
-                pcd_tr *= self.scale / 0.5
-                fovx = np.array([metadata['camera_angle_x']], dtype=np.float64)
-                img_list, depth_list, transform_list = [], [], []
+            #     verts *= self.scale / 0.5
+            #     # pcd_tr *= self.scale / 0.5
+            #     fovx = np.array([metadata['camera_angle_x']], dtype=np.float64)
+            #     img_list, depth_list, transform_list = [], [], []
 
-                assert self.img_num == len(metadata['frames'])
-                image_paths = [os.path.join(render_color_img_dir, metadata['frames'][i]["file_path"]) for i in range(self.img_num)]
-                bytes_images = await abatch_read_files(image_paths)
-                images = batch_buffer_to_cv2image(bytes_images)
-                for i, item in enumerate(metadata['frames']):
-                    img_name = item['file_path']
-                    assert i == int(os.path.splitext(img_name)[0])
+            #     assert self.img_num == len(metadata['frames'])
+            #     image_paths = [os.path.join(render_color_img_dir, metadata['frames'][i]["file_path"]) for i in range(self.img_num)]
+            #     bytes_images = await abatch_read_files(image_paths)
+            #     images = batch_buffer_to_cv2image(bytes_images)
+            #     for i, item in enumerate(metadata['frames']):
+            #         img_name = item['file_path']
+            #         assert i == int(os.path.splitext(img_name)[0])
 
-                    c2w = torch.tensor(item['transform_matrix'], dtype=torch.float32)
+            #         c2w = torch.tensor(item['transform_matrix'], dtype=torch.float32)
 
-                    c2w[:3, 3] *= self.scale / 0.5
+            #         c2w[:3, 3] *= self.scale / 0.5
 
-                    w2c = torch.inverse(c2w)
-                    # BGR -> RGB
-                    raw = cv2.resize(images[i], tuple(self.res_img))
-                    # mask = torch.tensor(raw[:, :, [-1]],
-                    #                     dtype=torch.float32).repeat(1, 1, 3) / 255
-                    img = torch.tensor(raw[:, :, [2, 1, 0, 3]],
-                                        dtype=torch.float32) / 255
+            #         w2c = torch.inverse(c2w)
+            #         # BGR -> RGB
+            #         raw = cv2.resize(images[i], tuple(self.res_img))
+            #         # mask = torch.tensor(raw[:, :, [-1]],
+            #         #                     dtype=torch.float32).repeat(1, 1, 3) / 255
+            #         img = torch.tensor(raw[:, :, [2, 1, 0, 3]],
+            #                             dtype=torch.float32) / 255
 
-                    # img = img * mask
+            #         # img = img * mask
 
-                    transform_list.append(w2c.reshape(-1))
-                    img_list.append(img.reshape(-1))
+            #         transform_list.append(w2c.reshape(-1))
+            #         img_list.append(img.reshape(-1))
 
-                    # depth
-                    depth_name = f'{i:05d}_depth.png'
-                    dep = cv2.imread(os.path.join(render_color_img_dir, depth_name), cv2.IMREAD_UNCHANGED)
+            #         # depth
+            #         depth_name = f'{i:05d}_depth.png'
+            #         dep = cv2.imread(os.path.join(render_color_img_dir, depth_name), cv2.IMREAD_UNCHANGED)
 
-                    # reference
-                    # https://github.com/openai/shap-e/blob/50131012ee11c9d2617f3886c10f000d3c7a3b43/shap_e/rendering/blender/view_data.py#L57-L62
-                    inf_dist = dep == 0xFFFF
-                    dep = np.where(
-                        inf_dist,
-                        0.,
-                        SHAPENET_MAX_DEPTH * (dep.astype(np.float32) / 65536),
-                    )
+            #         # reference
+            #         # https://github.com/openai/shap-e/blob/50131012ee11c9d2617f3886c10f000d3c7a3b43/shap_e/rendering/blender/view_data.py#L57-L62
+            #         inf_dist = dep == 0xFFFF
+            #         dep = np.where(
+            #             inf_dist,
+            #             0.,
+            #             SHAPENET_MAX_DEPTH * (dep.astype(np.float32) / 65536),
+            #         )
 
-                    dep = torch.tensor(cv2.resize(dep, tuple(self.res)), dtype=torch.float32) * self.scale / 0.5
+            #         dep = torch.tensor(cv2.resize(dep, tuple(self.res)), dtype=torch.float32) * self.scale / 0.5
 
-                    depth_list.append(dep.reshape(-1))
-            elif self.dataset_name == 'Objaverse':
+            #         depth_list.append(dep.reshape(-1))
+            if self.dataset_name == 'Objaverse':
                 # transport = (verts.max(0)[0] + verts.min(0)[0]) / 2
                 # verts -= transport
                 # scale = 1 / max(verts.max(0)[0] - verts.min(0)[0])
                 #
                 # verts *= self.scale / 0.5 * scale
-                pcd_tr *= self.scale / 0.5
+                # pcd_tr *= self.scale / 0.5
 
                 K, _, _, _, w2cs = pickle.load(io.BytesIO(await aread_file(render_color_cam_file)))
 
@@ -577,20 +577,20 @@ class FastDataset(Dataset):
             gt_transforms = torch.stack(transform_list, dim=-1)
             gt_render_depths = torch.stack(depth_list, dim=-1)
 
-        else:
-            verts -= ((verts.max(0)[0] + verts.min(0)[0]) / 2).unsqueeze(0).repeat(
-                (verts.shape[0], 1))
+        # else:
+        #     verts -= ((verts.max(0)[0] + verts.min(0)[0]) / 2).unsqueeze(0).repeat(
+        #         (verts.shape[0], 1))
 
-            # rotate & transport
-            pcd_tr = pcd_tr @ utils.rotate_x(-math.pi / 2).T[:3, :3]
-            pcd_tr -= ((pcd_tr.max(0)[0] + pcd_tr.min(0)[0]) / 2).unsqueeze(0).repeat((pcd_tr.shape[0], 1))
+        #     # rotate & transport
+        #     pcd_tr = pcd_tr @ utils.rotate_x(-math.pi / 2).T[:3, :3]
+        #     pcd_tr -= ((pcd_tr.max(0)[0] + pcd_tr.min(0)[0]) / 2).unsqueeze(0).repeat((pcd_tr.shape[0], 1))
 
-            # scale
-            verts = verts / torch.max(abs(verts)) * self.scale
-            pcd_tr = pcd_tr / torch.max(abs(pcd_tr)) * self.scale
+        #     # scale
+        #     verts = verts / torch.max(abs(verts)) * self.scale
+        #     pcd_tr = pcd_tr / torch.max(abs(pcd_tr)) * self.scale
 
-            # color
-            pcd_colors = (2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255)[..., :3] / 255
+        #     # color
+        #     pcd_colors = (2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255)[..., :3] / 255
         
         triview_imgs = None
         triview_xyzs = None
@@ -633,8 +633,8 @@ class FastDataset(Dataset):
             
         verts = verts.numpy().astype(np.float32)
         faces = faces.numpy().astype(np.int64)
-        pcd = pcd_tr.numpy().astype(np.float32)
-        pcd_colors = pcd_colors.numpy().astype(np.float32)
+        # pcd = pcd_tr.numpy().astype(np.float32)
+        # pcd_colors = pcd_colors.numpy().astype(np.float32)
         
         gt_render_imgs = gt_render_imgs.numpy().astype(np.float32) if gt_render_imgs is not None else None
         gt_render_depths = gt_render_depths.numpy().astype(np.float32) if gt_render_depths is not None else None
@@ -651,8 +651,8 @@ class FastDataset(Dataset):
             "uuid": data["uuid"],
             "verts": verts,
             "faces": faces,
-            "pcd": pcd,
-            "pcd_colors": pcd_colors,
+            # "pcd": pcd,
+            # "pcd_colors": pcd_colors,
             
             "gt_render_imgs": gt_render_imgs,
             "gt_render_depths": gt_render_depths,
@@ -666,14 +666,14 @@ class FastDataset(Dataset):
     
     
     def append_data(self, data: dict, 
-                    uuid, verts_list, faces_list, pcd_list, pcd_color_list, 
+                    uuid, verts_list, faces_list, 
                     render_color_img_list, render_depth_img_list, render_color_cam_list, 
                     fovx_list, triview_color_img_list, triview_xyz_img_list, prompt) -> None:
         uuid.append(data['uuid'])
         verts_list.append(data['verts'])
         faces_list.append(data['faces'])
-        pcd_list.append(data['pcd'])
-        pcd_color_list.append(data['pcd_colors'])
+        # pcd_list.append(data['pcd'])
+        # pcd_color_list.append(data['pcd_colors'])
 
         if self.render_color_img_dir != '':
             render_color_img_list.append(data['gt_render_imgs'])
@@ -714,20 +714,20 @@ class FastDataset(Dataset):
                             (self.mode == 'test' and record in self.test_set) or \
                             (self.mode == 'all' and record in self.all_set):
 
-                        if self.dataset_name == 'ShapeNet':
-                            # load vertices and faces
-                            gt_path = os.path.join(class_dir, object_name, 'blank_model.ply')
-                            pcd_file = os.path.join(self.pcd_dir, class_name, object_name,
-                                                    'models', f'pc_model_normalized.obj_mat_{self.img_num}_262144_131072.ply')
-                            if self.render_color_img_dir != '':
-                                render_color_img_dir = os.path.join(self.render_color_img_dir, class_name, object_name,
-                                                                    'img', object_name, 'models')
-                                render_color_cam_file = os.path.join(self.render_color_img_dir, class_name, object_name,
-                                                                     'img', object_name, 'models', 'transforms.json')
-                        elif self.dataset_name == 'Objaverse':
+                        # if self.dataset_name == 'ShapeNet':
+                        #     # load vertices and faces
+                        #     gt_path = os.path.join(class_dir, object_name, 'blank_model.ply')
+                        #     pcd_file = os.path.join(self.pcd_dir, class_name, object_name,
+                        #                             'models', f'pc_model_normalized.obj_mat_{self.img_num}_262144_131072.ply')
+                        #     if self.render_color_img_dir != '':
+                        #         render_color_img_dir = os.path.join(self.render_color_img_dir, class_name, object_name,
+                        #                                             'img', object_name, 'models')
+                        #         render_color_cam_file = os.path.join(self.render_color_img_dir, class_name, object_name,
+                        #                                              'img', object_name, 'models', 'transforms.json')
+                        if self.dataset_name == 'Objaverse':
                             # load vertices and faces
                             gt_path = os.path.join(class_dir, object_name)
-                            pcd_file = os.path.join(self.pcd_dir, record, 'pc_262144_131072.ply')
+                            # pcd_file = os.path.join(self.pcd_dir, record, 'pc_262144_131072.ply')
                             if self.render_color_img_dir != '':
                                 render_color_img_dir = os.path.join(self.render_color_img_dir, record)
                                 render_color_cam_file = os.path.join(self.render_color_img_dir, record, 'meta.pkl')
@@ -738,7 +738,7 @@ class FastDataset(Dataset):
 
                         res = {
                             'gt_path': gt_path,
-                            'pcd_file': pcd_file,
+                            # 'pcd_file': pcd_file,
                             'uuid': record
                         }
 
@@ -786,7 +786,7 @@ class FastDataset(Dataset):
 
     def _write_one_chunk(self, chunk_index:int,
                         verts_list: List[torch.FloatTensor], faces_list: List[torch.LongTensor],
-                        pcd_list: List[torch.FloatTensor], pcd_colors_list: List[torch.FloatTensor],
+                        # pcd_list: List[torch.FloatTensor], pcd_colors_list: List[torch.FloatTensor],
                         render_color_img_list: List[torch.FloatTensor], render_depth_img_list: List[torch.FloatTensor], 
                         render_color_cam_list: List[torch.FloatTensor],
                         fovx_list: List[torch.DoubleTensor], triview_color_img_list: List[torch.FloatTensor],
@@ -796,8 +796,8 @@ class FastDataset(Dataset):
         indices = torch.randperm(len(verts_list)).tolist()
         shuffled_verts_list = [verts_list[i] for i in indices]
         shuffled_faces_list = [faces_list[i] for i in indices]
-        shuffled_pcd_list = [pcd_list[i] for i in indices]
-        shuffled_pcd_colors_list = [pcd_colors_list[i] for i in indices]
+        # shuffled_pcd_list = [pcd_list[i] for i in indices]
+        # shuffled_pcd_colors_list = [pcd_colors_list[i] for i in indices]
         shuffled_uuid = [uuid[i] for i in indices]
         if self.render_color_img_dir != '':
             shuffled_render_color_img_list = [render_color_img_list[i] for i in indices]
@@ -816,8 +816,8 @@ class FastDataset(Dataset):
         for i in range(3):
             columns['verts_list_{}'.format(i)] = [verts[:, i] for verts in shuffled_verts_list]
             columns['faces_list_{}'.format(i)] = [faces[:, i] for faces in shuffled_faces_list]
-            columns['pcd_list_{}'.format(i)] = [pcd[:, i] for pcd in shuffled_pcd_list]
-            columns['pcd_colors_list_{}'.format(i)] = [pcd_colors[:, i] for pcd_colors in shuffled_pcd_colors_list]
+            # columns['pcd_list_{}'.format(i)] = [pcd[:, i] for pcd in shuffled_pcd_list]
+            # columns['pcd_colors_list_{}'.format(i)] = [pcd_colors[:, i] for pcd_colors in shuffled_pcd_colors_list]
 
         if self.render_color_img_dir != '':
             for i in range(self.img_num):
@@ -884,8 +884,8 @@ class FastDataset(Dataset):
                 for i in range(3):
                     dtypes.append(('verts_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.float32))))
                     dtypes.append(('faces_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.int64))))
-                    dtypes.append(('pcd_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.float32))))
-                    dtypes.append(('pcd_colors_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.float32))))
+                    # dtypes.append(('pcd_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.float32))))
+                    # dtypes.append(('pcd_colors_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.float32))))
                 if self.render_color_img_dir != '':
                     for i in range(self.img_num):
                         dtypes.append(('render_color_img_list_{}'.format(i), pa.list_(pa.from_numpy_dtype(np.float32))))
@@ -909,7 +909,8 @@ class FastDataset(Dataset):
         
         def do_one_chunk(obj, chunk, chunk_index):
             nonlocal bar_write
-            verts_list, faces_list, pcd_list, pcd_color_list = [], [], [], []
+            verts_list, faces_list = [], []
+            # pcd_list, pcd_color_list = [], [], [], []
             render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list = [], [], [], []
             triview_color_img_list, triview_xyz_img_list = [], []
             uuid, prompt = [], []
@@ -919,12 +920,14 @@ class FastDataset(Dataset):
             readed_data = loop.run_until_complete(asyncio.gather(*futures))
             loop.close()
             for data in readed_data:
-                obj.append_data(data, uuid, verts_list, faces_list, pcd_list, pcd_color_list, 
-                            render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list, 
+                obj.append_data(data, uuid, verts_list, faces_list,
+                            # pcd_list, pcd_color_list,
+                            render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list,
                             triview_color_img_list, triview_xyz_img_list, prompt)
             
             obj._write_one_chunk(chunk_index,
-                                verts_list, faces_list, pcd_list, pcd_color_list,
+                                verts_list, faces_list,
+                                # pcd_list, pcd_color_list,
                                 render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list,
                                 triview_color_img_list, triview_xyz_img_list, uuid, prompt,
                                 parquet_writers)

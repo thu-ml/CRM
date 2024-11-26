@@ -8,7 +8,6 @@ from tqdm import tqdm
 import torch.distributed as dist
 
 from datasets.memory_dataset import MemoryDataset
-from datasets.filesystem_dataset import FilesystemDataset
 from datasets.fast_dataset import FastDataset
 # from util.common import pcd_preprocess
 from accelerate import Accelerator
@@ -16,33 +15,11 @@ from util import utils
 from subprocess import Popen, PIPE
 
 
-def train(specs, config_path):
-    input_specs = specs['Input']
-    task_mode = input_specs['task_mode']
-    tet_grid_size = input_specs['tet_grid_size']
-    dataset_type = input_specs.get('dataset_type', None)
-
-    train_specs = specs['Train']
-
-    device = 'cuda:0'
-    # glctx = dr.RasterizeCudaContext()
-    glctx = None
-
-    dataset, dataset_val_all = [None] * 2
-
-    if dataset_type == 'memory' or dataset_type is None:
-        dataset = MemoryDataset(input_specs, train_specs, glctx, tet_grid_size, device, task_mode=task_mode)
-
-    elif dataset_type == 'filesystem':
-        dataset = FastDataset(input_specs, train_specs, glctx, device, 0, mode='all')
-    return dataset
-
-
 def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
         "--exp_dir", "-e",
-        default="config/",
+        default="configs/",
         help="This directory should include experiment specifications in 'specs.json,' and logging will be done in this directory as well.",
     )
     arg_parser.add_argument(
@@ -69,8 +46,10 @@ def main():
     config_path = os.path.join(args.exp_dir, args.config_name)
 
     specs = json.load(open(config_path))
-    dataset = train(specs, config_path)
-    
+    input_specs = specs['Input']
+    train_specs = specs['Train']
+    dataset = FastDataset(input_specs, train_specs, None, None, 0, mode='all')
+
     dataset.num_process = args.num_process
     dataset.process_index = args.process_index
     dataset._write_chunks(dataset.parquet_dir, dataset.chunk_size)

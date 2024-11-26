@@ -29,10 +29,10 @@ class Dataset(torch.utils.data.Dataset):
         # iter_spp = batch[0]['spp']
         res = {
             'uuid': list([item['uuid'] for item in batch]),
-            'gt_pcd': torch.cat(list([item['gt_pcd'] for item in batch]), dim=0).to(self.device),
-            'gt_pcd_colors':  torch.cat(list([item['gt_pcd_colors'] for item in batch])).to(self.device),
-            'gt_pcd_query': torch.cat(list([item['gt_pcd_query'] for item in batch]), dim=0).to(self.device),
-            'gt_pcd_colors_query': torch.cat(list([item['gt_pcd_colors_query'] for item in batch])).to(self.device),
+            # 'gt_pcd': torch.cat(list([item['gt_pcd'] for item in batch]), dim=0).to(self.device),
+            # 'gt_pcd_colors':  torch.cat(list([item['gt_pcd_colors'] for item in batch])).to(self.device),
+            # 'gt_pcd_query': torch.cat(list([item['gt_pcd_query'] for item in batch]), dim=0).to(self.device),
+            # 'gt_pcd_colors_query': torch.cat(list([item['gt_pcd_colors_query'] for item in batch])).to(self.device),
             'gt_render_imgs': torch.cat(list([item['gt_render_imgs'] for item in batch]), dim=0).to(self.device),
             # 'verts': torch.cat(list([item['verts'] for item in batch]), dim=0).to(self.device),
             # 'tets': tets.to(self.device),

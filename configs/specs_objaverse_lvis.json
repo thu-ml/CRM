@@ -3,7 +3,6 @@
 
   "Input": {
     "task_mode": "batch",
-    "pcd_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis_ply",
     "mesh_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis_mesh",
     "render_img_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis",
     "blender_transform": "/home/yudajiang/datasets/Objaverse/normalize_anno/meta_data_new.json",
@@ -48,17 +47,14 @@
     "warm_up": 0,
     "decay": 0.000,
     "learning_rate": {
-      "init": 1e-4,
-      "sdf_decay": 1.0,
-      "rgb_decay": 1.0
+      "init": 1e-4
     },
     "sample_points_num": 20000,
     "query_sample_points_num": 60000,
     "batch_size": 1,
     "eva_iter": 80,
     "save_chunk": 50,
-    "xyz_noise_scale": 0.00,
-    "eva_all_epoch": 10,
+    "eva_all_epoch": 0,
     "tex_sup_mode": "blender",
     "dep&sill_sup_mode": "blender",
     "lambda_smooth": 1,

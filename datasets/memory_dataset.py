@@ -23,7 +23,7 @@ from PIL import Image
 
 from .dataset import Dataset
 from util import utils, renderer
-from util.utils import SHAPENET_MAX_DEPTH, DEPTH_MAX, DEPTH_MIN, DEPTH_VALID_MIN, DEPTH_VALID_MAX
+from util.utils import DEPTH_MAX, DEPTH_MIN, DEPTH_VALID_MIN, DEPTH_VALID_MAX
 
 
 class MemoryDataset(Dataset):
@@ -47,7 +47,7 @@ class MemoryDataset(Dataset):
         self.dep_sill_mode = train_specs.get('dep&sill_sup_mode')
         self.scale = input_specs['scale']
 
-        self.pcd_dir = input_specs['pcd_dir']
+        # self.pcd_dir = input_specs['pcd_dir']
         self.mesh_dir = input_specs['mesh_dir']
         self.class_name = input_specs['class']
         self.camera_angle_num = input_specs['camera_angle_num']
@@ -140,26 +140,26 @@ class MemoryDataset(Dataset):
                         if not self.validate and record not in self.train_set:
                             continue
 
-                        if self.dataset_name == 'ShapeNet':
-                            # load vertices and faces
-                            gt_path = os.path.join(class_dir, object_name, 'blank_model.ply')
-                            # load pcd
-                            pcd_file = os.path.join(self.pcd_dir, class_name, object_name,
-                                                    'models',
-                                                    f'pc_model_normalized.obj_mat_{self.img_num}_262144_131072.ply')
+                        # if self.dataset_name == 'ShapeNet':
+                        #     # load vertices and faces
+                        #     gt_path = os.path.join(class_dir, object_name, 'blank_model.ply')
+                        #     # load pcd
+                        #     pcd_file = os.path.join(self.pcd_dir, class_name, object_name,
+                        #                             'models',
+                        #                             f'pc_model_normalized.obj_mat_{self.img_num}_262144_131072.ply')
 
-                        elif self.dataset_name == 'Objaverse':
+                        if self.dataset_name == 'Objaverse':
                             # load vertices and faces
                             gt_path = os.path.join(class_dir, object_name)
-                            pcd_file = os.path.join(self.pcd_dir, record, 'pc_262144_131072.ply')
+                            # pcd_file = os.path.join(self.pcd_dir, record, 'pc_262144_131072.ply')
 
                         # skip empty folder
                         if not os.path.exists(gt_path):
                             continue
 
-                        # skip empty folder
-                        if not os.path.exists(pcd_file):
-                            continue
+                        # # skip empty folder
+                        # if not os.path.exists(pcd_file):
+                        #     continue
 
                         # load raw vertices and faces
                         try:
@@ -170,33 +170,34 @@ class MemoryDataset(Dataset):
                         if not hasattr(ref_mesh, 'vertices') or not hasattr(ref_mesh, 'faces'):
                             continue
 
-                        # load point cloud
-                        pcd = trimesh.load(pcd_file)
+                        # # load point cloud
+                        # pcd = trimesh.load(pcd_file)
 
-                        if not hasattr(pcd, 'vertices') or not hasattr(pcd, 'colors'):
-                            print("pcd has no attr vertices or colors", pcd_file)
-                            continue
+                        # if not hasattr(pcd, 'vertices') or not hasattr(pcd, 'colors'):
+                        #     print("pcd has no attr vertices or colors", pcd_file)
+                        #     continue
 
-                        if len(pcd.vertices) < self.query_pts_num:
-                            print("pcd num less than query_pts_num", pcd_file)
-                            continue
+                        # if len(pcd.vertices) < self.query_pts_num:
+                        #     print("pcd num less than query_pts_num", pcd_file)
+                        #     continue
 
                         verts = torch.tensor(ref_mesh.vertices, dtype=torch.float32)
                         faces = torch.LongTensor(ref_mesh.faces)
 
                         if self.render_img_dir == '':
-                            res = self._preprocess(verts, faces, pcd_file, uuid=record)
+                            pass
+                            # res = self._preprocess(verts, faces, pcd_file, uuid=record)
                         else:
-                            if self.dataset_name == 'ShapeNet':
-                                imgdir = os.path.join(self.render_img_dir, class_name, object_name, 'img', object_name, 'models')
-                            elif self.dataset_name == 'Objaverse':
+                            # if self.dataset_name == 'ShapeNet':
+                            #     imgdir = os.path.join(self.render_img_dir, class_name, object_name, 'img', object_name, 'models')
+                            if self.dataset_name == 'Objaverse':
                                 imgdir = os.path.join(self.render_img_dir, record)
                             else:
                                 raise RuntimeError('Not valid dataset_name')
                             # skip empty folder
                             if not os.path.exists(imgdir):
                                 continue
-                            res = self._preprocess(verts, faces, pcd_file, uuid=record, imgdir=imgdir)
+                            res = self._preprocess(verts, faces, uuid=record, imgdir=imgdir)
 
                         res[0].update({'uuid': record})
 
@@ -243,105 +244,106 @@ class MemoryDataset(Dataset):
         else:
             raise ValueError("Error! Unrecognized task mode.")
 
-    def _preprocess(self, verts, faces, pcd_file, uuid=None, imgdir=None):
+    def _preprocess(self, verts, faces, uuid=None, imgdir=None):
         # no render images or no blender mode
         if imgdir is None or (self.render_mode != 'blender' and self.dep_sill_mode != 'blender'):
-            verts -= ((verts.max(0)[0] + verts.min(0)[0]) / 2).unsqueeze(0).repeat(
-                (verts.shape[0], 1))
+            pass
+        #     verts -= ((verts.max(0)[0] + verts.min(0)[0]) / 2).unsqueeze(0).repeat(
+        #         (verts.shape[0], 1))
 
-            # load point cloud
-            pcd = trimesh.load(pcd_file)
-            pcd_tr = torch.tensor(pcd.vertices, dtype=torch.float32)
+        #     # load point cloud
+        #     pcd = trimesh.load(pcd_file)
+        #     pcd_tr = torch.tensor(pcd.vertices, dtype=torch.float32)
 
-            # rotate & transport
-            pcd_tr = pcd_tr @ utils.rotate_x(-math.pi / 2).T[:3, :3]
-            pcd_tr -= ((pcd_tr.max(0)[0] + pcd_tr.min(0)[0]) / 2).unsqueeze(0).repeat((pcd_tr.shape[0], 1))
+        #     # rotate & transport
+        #     pcd_tr = pcd_tr @ utils.rotate_x(-math.pi / 2).T[:3, :3]
+        #     pcd_tr -= ((pcd_tr.max(0)[0] + pcd_tr.min(0)[0]) / 2).unsqueeze(0).repeat((pcd_tr.shape[0], 1))
 
-            # color, normalized to [-1, 1]
-            pcd_colors = ((2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255) / 255)[..., :3]
+        #     # color, normalized to [-1, 1]
+        #     pcd_colors = ((2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255) / 255)[..., :3]
 
-            # scale
-            verts = verts / torch.max(abs(verts)) * self.scale
-            pcd_tr = pcd_tr / torch.max(abs(pcd_tr)) * self.scale
+        #     # scale
+        #     verts = verts / torch.max(abs(verts)) * self.scale
+        #     pcd_tr = pcd_tr / torch.max(abs(pcd_tr)) * self.scale
 
-            return [{
-                    'gt_verts': verts,
-                    'gt_faces': faces,
-                    'gt_pcd': pcd_tr,
-                    'gt_pcd_colors': pcd_colors
-                }]
+        #     return [{
+        #             'gt_verts': verts,
+        #             'gt_faces': faces,
+        #             'gt_pcd': pcd_tr,
+        #             'gt_pcd_colors': pcd_colors
+        #         }]
 
         else:
-            # load point cloud
-            pcd = trimesh.load(pcd_file)
+        # # load point cloud
+        # pcd = trimesh.load(pcd_file)
 
-            if not hasattr(pcd, 'vertices') or not hasattr(pcd, 'colors'):
-                return
+        # if not hasattr(pcd, 'vertices') or not hasattr(pcd, 'colors'):
+        #     return
 
-            if len(pcd.vertices) < self.query_pts_num:
-                return
+        # if len(pcd.vertices) < self.query_pts_num:
+        #     return
 
-            pcd_tr = torch.tensor(pcd.vertices, dtype=torch.float32)
+        # pcd_tr = torch.tensor(pcd.vertices, dtype=torch.float32)
 
-            # rotate
+        # rotate
             verts[:, -1] = -verts[:, -1]
             verts = verts[:, [0, 2, 1]]
-            pcd_colors = ((2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255) / 255)[..., :3]
+        # pcd_colors = ((2 * torch.tensor(pcd.colors, dtype=torch.float32) - 255) / 255)[..., :3]
 
-            if self.dataset_name == 'ShapeNet':
-                verts *= self.scale / 0.5
-                pcd_tr *= self.scale / 0.5
+        # if self.dataset_name == 'ShapeNet':
+        #     verts *= self.scale / 0.5
+        #     pcd_tr *= self.scale / 0.5
 
-                with open(os.path.join(imgdir, 'transforms.json'), 'r') as f:
-                    metadata = json.load(f)
-                self.fovx = metadata['camera_angle_x']
-                img_list, transform_list = [], []
-                depth_list = []
-                for i, data in enumerate(metadata['frames']):
-                    img_name = data['file_path']
-                    assert i == int(os.path.splitext(img_name)[0])
+        #     with open(os.path.join(imgdir, 'transforms.json'), 'r') as f:
+        #         metadata = json.load(f)
+        #     self.fovx = metadata['camera_angle_x']
+        #     img_list, transform_list = [], []
+        #     depth_list = []
+        #     for i, data in enumerate(metadata['frames']):
+        #         img_name = data['file_path']
+        #         assert i == int(os.path.splitext(img_name)[0])
 
-                    c2w = torch.tensor(data['transform_matrix'], dtype=torch.float32)
+        #         c2w = torch.tensor(data['transform_matrix'], dtype=torch.float32)
 
-                    c2w[:3, 3] *= self.scale / 0.5
+        #         c2w[:3, 3] *= self.scale / 0.5
 
-                    w2c = torch.inverse(c2w)
-                    # BGR -> RGB -> [-1, 1]
-                    raw = cv2.resize(
-                        cv2.imread(os.path.join(imgdir, img_name), cv2.IMREAD_UNCHANGED),
-                        tuple(self.res_img))
-                    mask = torch.tensor(raw[:, :, [-1]],
-                                        dtype=torch.float32).repeat(1, 1, 3) / 255
-                    img = torch.tensor(raw[:, :, [2, 1, 0]],
-                                       dtype=torch.float32) / 255
+        #         w2c = torch.inverse(c2w)
+        #         # BGR -> RGB -> [-1, 1]
+        #         raw = cv2.resize(
+        #             cv2.imread(os.path.join(imgdir, img_name), cv2.IMREAD_UNCHANGED),
+        #             tuple(self.res_img))
+        #         mask = torch.tensor(raw[:, :, [-1]],
+        #                             dtype=torch.float32).repeat(1, 1, 3) / 255
+        #         img = torch.tensor(raw[:, :, [2, 1, 0]],
+        #                             dtype=torch.float32) / 255
 
-                    img = img * mask
+        #         img = img * mask
 
-                    transform_list.append(w2c)
-                    img_list.append(img)
+        #         transform_list.append(w2c)
+        #         img_list.append(img)
 
-                    # depth
-                    depth_name = f'{i:05d}_depth.png'
-                    dep = cv2.imread(os.path.join(imgdir, depth_name), cv2.IMREAD_UNCHANGED)
+        #         # depth
+        #         depth_name = f'{i:05d}_depth.png'
+        #         dep = cv2.imread(os.path.join(imgdir, depth_name), cv2.IMREAD_UNCHANGED)
 
-                    # reference
-                    # https://github.com/openai/shap-e/blob/50131012ee11c9d2617f3886c10f000d3c7a3b43/shap_e/rendering/blender/view_data.py#L57-L62
-                    inf_dist = dep == 0xFFFF
-                    dep = np.where(
-                        inf_dist,
-                        0.,
-                        SHAPENET_MAX_DEPTH * (dep.astype(np.float32) / 65536),
-                    )
+        #         # reference
+        #         # https://github.com/openai/shap-e/blob/50131012ee11c9d2617f3886c10f000d3c7a3b43/shap_e/rendering/blender/view_data.py#L57-L62
+        #         inf_dist = dep == 0xFFFF
+        #         dep = np.where(
+        #             inf_dist,
+        #             0.,
+        #             SHAPENET_MAX_DEPTH * (dep.astype(np.float32) / 65536),
+        #         )
 
-                    dep = torch.tensor(cv2.resize(dep, tuple(self.res)), dtype=torch.float32) * self.scale / 0.5
+        #         dep = torch.tensor(cv2.resize(dep, tuple(self.res)), dtype=torch.float32) * self.scale / 0.5
 
-                    depth_list.append(dep)
+        #         depth_list.append(dep)
 
-                gt_render_imgs = torch.stack(img_list)
-                gt_transforms = torch.stack(transform_list)
-                gt_render_depths = torch.stack(depth_list).unsqueeze(-1)
+        #     gt_render_imgs = torch.stack(img_list)
+        #     gt_transforms = torch.stack(transform_list)
+        #     gt_render_depths = torch.stack(depth_list).unsqueeze(-1)
 
-            elif self.dataset_name == 'Objaverse':
+            if self.dataset_name == 'Objaverse':
                 if self.uuid2transform:
                     transform = self.uuid2transform[uuid]
                     transport = torch.tensor(transform['offset'], dtype=torch.float32)
@@ -353,10 +355,10 @@ class MemoryDataset(Dataset):
                     scale = 1 / max(verts.max(0)[0] - verts.min(0)[0])
 
                     verts *= self.scale / 0.5 * scale
-                pcd_tr *= self.scale / 0.5
+                # pcd_tr *= self.scale / 0.5
 
                 with open(os.path.join(imgdir, 'meta.pkl'), 'rb') as f:
-                    K, _, _, distance, w2cs = pickle.load(f)
+                    K, _, _, _, w2cs = pickle.load(f)
 
                 self.fovx = 2 * math.atan(K[0, 2] / K[0, 0])
 
@@ -415,7 +417,7 @@ class MemoryDataset(Dataset):
 
             return [{
                 'gt_verts': verts.cpu(), 'gt_faces': faces.cpu(),
-                'gt_pcd': pcd_tr, 'gt_pcd_colors': pcd_colors,
+                # 'gt_pcd': pcd_tr, 'gt_pcd_colors': pcd_colors,
                 'gt_render_imgs': gt_render_imgs, 'gt_transforms': gt_transforms, 'gt_render_depths': gt_render_depths}]
 
     def _sample_scene(self, idx, num, rotate=False):
@@ -483,18 +485,18 @@ class MemoryDataset(Dataset):
                 mvp, campos, persp, iter_res
             )
 
-        pcd_num = len(self.data[num]['gt_pcd'])
-        index = random.sample(range(pcd_num), k=self.pts_num)
-        index_query = random.sample(range(pcd_num), k=min(self.query_pts_num, self.pts_num))
+        # pcd_num = len(self.data[num]['gt_pcd'])
+        # index = random.sample(range(pcd_num), k=self.pts_num)
+        # index_query = random.sample(range(pcd_num), k=min(self.query_pts_num, self.pts_num))
 
         res = {
             'uuid': self.data[num].get('uuid'),
             'gt_verts': self.data[num]['gt_verts'],
             'gt_faces': self.data[num]['gt_faces'],
-            'gt_pcd': self.data[num]['gt_pcd'][None, index, ...],
-            'gt_pcd_colors': self.data[num]['gt_pcd_colors'][None, index, ...],
-            'gt_pcd_colors_query': self.data[num]['gt_pcd_colors'][None, index_query, ],
-            'gt_pcd_query': self.data[num]['gt_pcd'][None, index_query, ],
+            # 'gt_pcd': self.data[num]['gt_pcd'][None, index, ...],
+            # 'gt_pcd_colors': self.data[num]['gt_pcd_colors'][None, index, ...],
+            # 'gt_pcd_colors_query': self.data[num]['gt_pcd_colors'][None, index_query, ],
+            # 'gt_pcd_query': self.data[num]['gt_pcd'][None, index_query, ],
             'gt_render_imgs': imgs[None, ],
             'mv': mv[None, ],
             'mvp': mvp[None, ],

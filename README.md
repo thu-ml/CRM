@@ -40,7 +40,12 @@ Install nvdiffrast according to the official [doc](https://nvlabs.github.io/nvdi
 pip install git+https://github.com/NVlabs/nvdiffrast
 ```
 
+### Step 3 - Pytorch3d
+Install nvdiffrast according to the official [doc](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md), e.g.
 
+```bash
+pip install git+https://github.com/facebookresearch/pytorch3d.git
+```
 
 ## Inference
 
@@ -61,7 +66,31 @@ It will output the preprocessed image, generated 6-view images and CCMs and a 3D
 **Tips:** (1) If the result is unsatisfatory, please check whether the input image is correctly pre-processed into a grey background. Otherwise the results will be unpredictable.
 (2) Different from the [Huggingface Demo](https://huggingface.co/spaces/Zhengyi/CRM), this official implementation uses UV texture instead of vertex color. It has better texture than the online demo but longer generating time owing to the UV texturing.
 
-## Train
+
+## Train CRM
+### Step 1. Generate Chunks
+Multiprocess multi-threads chunks generation
+```bash
+python make_chunk.py -c specs_xxxx.json -p 4 # change to proper number of process for your machine
+```
+
+### Step 2. Train
+Use the same config json file in **step.1** for training
+#### Single GPU 
+```bash
+python train_crm.py -c specs_xxx.json 
+```
+#### Multi GPU
+```bash
+torchrun --standalone --nproc_per_node=8 train_crm.py -c specs_xxx.json
+
+# Training break to resume training
+torchrun --standalone --nproc_per_node=8 train_crm.py --resume exp-xxx/mm_dd-hh_mm_ss
+
+```
+
+
+## Train Diffusion
 We provide training script for multivew generation and their data requirements.
 To launch a simple one instance overfit training of multivew gen:
 ```shell
