@@ -74,48 +74,8 @@ class MemoryDataset(Dataset):
 
         self.uuid2transform = utils.load_transform(input_specs.get('blender_transform'))
 
-        # if self.prompt_path != '':
         self.uuid2prompt = utils.load_prompt(self.prompt_path)
 
-        # if task_mode == "debug":
-        #     # load raw vertices and faces
-        #     ref_mesh = trimesh.load(self.mesh_dir, force='mesh', process=False)
-        #     verts = torch.tensor(ref_mesh.vertices, dtype=torch.float32)
-        #     faces = torch.LongTensor(ref_mesh.faces)
-
-        #     if self.pcd_dir.endswith(".usd"):
-        #         # load point cloud
-        #         pcd = kaolin.io.usd.import_pointclouds(self.pcd_dir)[0]
-        #         pcd_tr = pcd.points
-        #         pcd_colors = pcd.colors
-
-        #         # scale
-        #         verts = verts / torch.max(abs(verts)) * self.scale
-        #         pcd_tr = pcd_tr / torch.max(abs(pcd_tr)) * self.scale
-
-        #         self.data = [
-        #             {'gt_verts': verts.cpu(), 'gt_faces': faces.cpu(), 'gt_pcd': pcd_tr, 'gt_pcd_colors': pcd_colors}]
-
-        #     elif self.pcd_dir.endswith(".ply") and self.render_img_dir == '':
-        #         self.data = self._preprocess(verts, faces, self.pcd_dir)
-
-        #     elif self.pcd_dir.endswith('.ply') and self.render_img_dir != '':
-        #         # render imgs
-        #         filename = os.path.split(self.render_img_dir)[-1]
-
-        #         if self.dataset_name == 'ShapeNet':
-        #             imgdir = os.path.join(self.render_img_dir, 'img', filename, 'models')
-        #         elif self.dataset_name == 'Objaverse':
-        #             imgdir = self.render_img_dir
-        #         else:
-        #             raise RuntimeError('Not valid dataset_name')
-        #         self.data = self._preprocess(verts, faces, self.pcd_dir, imgdir=imgdir)
-
-        #     else:
-        #         raise RuntimeError('Illegal point cloud format')
-
-        # elif task_mode == "batch":
-        # multi mesh
         self.data = []
         for class_name in os.listdir(self.mesh_dir):
             if class_name == self.class_name or self.class_name == 'all':
@@ -123,18 +83,11 @@ class MemoryDataset(Dataset):
                 if class_name.endswith('.json'):
                     continue
                 for i, object_name in enumerate(tqdm(os.listdir(class_dir))):
-                    # if i > 99:
-                    #     break
-                    # if self.dataset_name == 'ShapeNet' and self.class_name == 'all':
-                    #     record = '/'.join([class_name, object_name])
-                    # elif self.dataset_name == 'Objaverse':
                     record = os.path.splitext(object_name)[0]
                     # exclude no transform data
                     if record in self.objaverse_exclude:
                         continue
-                    # else:
-                    #     record = object_name
-                    # validate set abort
+
                     if self.validate and record not in self.val_list:
                         continue
                     # train set abort
@@ -159,12 +112,10 @@ class MemoryDataset(Dataset):
 
                     res.update({'uuid': record})
 
-                    # if self.triview_color_dir != '' and self.triview_xyz_dir != '':
                     img_list, xyz_list = [], []
                     triview_color_dir = os.path.join(self.triview_color_dir, record)
                     triview_xyz_dir = os.path.join(self.triview_xyz_dir, record)
                     for i in range(6):
-                        # BGR -> RGB
                         raw = cv2.resize(
                             cv2.imread(os.path.join(triview_color_dir, f'{i:03d}.png'), cv2.IMREAD_UNCHANGED),
                             tuple(self.res_triview))
@@ -173,6 +124,7 @@ class MemoryDataset(Dataset):
                             tuple(self.res_triview))
                         mask = torch.tensor(raw[:, :, [-1]],
                                             dtype=torch.float32).repeat(1, 1, 3) / 255
+                        # BGR -> RGB
                         img = torch.tensor(raw[:, :, [2, 1, 0]],
                                             dtype=torch.float32) / 255
                         xyz = torch.tensor(xyz, dtype=torch.float32) / 255
@@ -191,12 +143,10 @@ class MemoryDataset(Dataset):
                         'triview_xyz': triview_xyzs
                     })
 
-                    # if self.prompt_path != '':
                     res.update({
                         'prompt': self.uuid2prompt.get(os.path.splitext(object_name)[0])
                     })
 
-                    # if res is not None:
                     self.data.append(res)
 
     def _preprocess(self, verts, faces, uuid=None, imgdir=None):
@@ -239,7 +189,6 @@ class MemoryDataset(Dataset):
 
             # depth
             # syncdreamer
-            # if os.path.exists(os.path.join(imgdir, f'{i:03d}-depth.png')):
             depth_name = f'{i:03d}-depth.png'
             dep = cv2.imread(os.path.join(imgdir, depth_name), cv2.IMREAD_UNCHANGED)
 
@@ -247,14 +196,6 @@ class MemoryDataset(Dataset):
             # https://github.com/liuyuan-pal/SyncDreamer/blob/232a2ec22f0277b4bd429109fb34eaf8f61b13ad/eval_mesh.py#L16-L22
             dep = dep.astype(np.float32) / 65535 * (DEPTH_MAX - DEPTH_MIN) + DEPTH_MIN
             mask = (dep < DEPTH_VALID_MIN) | (dep > DEPTH_VALID_MAX)
-
-            # # cs
-            # elif os.path.exists(os.path.join(imgdir, f'depth_{i:03d}1.png')):
-            #     depth_name = f'depth_{i:03d}1.png'
-            #     depth_path = os.path.join(imgdir, depth_name)
-
-            #     dep =(np.array(Image.open(depth_path))[:,:,0]- 64) / 127
-            #     mask = np.array(Image.open(depth_path))[:,:,0] == 255
 
             dep = np.where(mask, 0., dep)
 
@@ -265,7 +206,6 @@ class MemoryDataset(Dataset):
             render_imgs = torch.stack(img_list)
             transforms = torch.stack(transform_list)
             render_depths = torch.stack(depth_list).unsqueeze(-1)
-
 
         return {
             'verts': verts, 
@@ -280,19 +220,6 @@ class MemoryDataset(Dataset):
 
         proj_mtx = utils.perspective(self.fovx, self.res[1] / self.res[0])
 
-        # if self.render_mode != 'blender' and self.dep_sill_mode != 'blender':
-        #     if rotate:
-        #         ang = (idx / 20) * np.pi * 2
-        #         mv = utils.translate(0, 0, -self.cam_radius) @ (utils.rotate_x(0.4) @ utils.rotate_y(ang))
-        #         mv = mv.repeat(batch, 1, 1)
-        #     else:
-        #         mv = torch.bmm(
-        #             utils.translate(0, 0, -self.cam_radius).repeat(batch, 1, 1),
-        #             utils.batch_random_rotation_translation(self.camera_angle_num, 0.25)
-        #         )
-        #     depths = torch.zeros((batch,) + tuple(self.res) + (1,))
-        #     imgs = torch.zeros((batch,) + tuple(self.res) + (3,))
-        # else:
         mv = self.data[num].get('transforms')
         img_num = len(mv)
         index = random.sample(range(img_num), k=1 if rotate else self.camera_angle_num)
@@ -305,13 +232,11 @@ class MemoryDataset(Dataset):
             proj_mtx.repeat(batch, 1, 1),
             mv
         )
-        # campos = torch.linalg.inv(mv)[:, :3, 3]
 
         return mv.to(self.device), mvp.to(self.device), imgs.to(self.device), \
             depths.to(self.device), proj_mtx.to(self.device), self.res
 
     def __len__(self):
-        # return self.epoch if self.validate else self.its_per_epc
         return 20 if self.visual else len(self.data)
 
     def __getitem__(self, idx):
@@ -323,16 +248,6 @@ class MemoryDataset(Dataset):
         # rotate or random scene
         mv, mvp, imgs, depth, persp, iter_res = self._sample_scene(num, rotate=self.visual)
 
-        # if self.dep_sill_mode == 'blender':
-        #     alpha = alpha_ctn = (depths > 0).float()
-        #     normal, face_normals = renderer.render_mesh(
-        #         self.glctx,
-        #         self.data[num]['gt_verts'].to(self.device),
-        #         self.data[num]['gt_faces'].to(self.device),
-        #         mvp, campos, persp, iter_res,
-        #         normal_only=True
-        #     )
-        # else:
         alpha, depth, normal = renderer.render_mesh(
             self.glctx,
             self.data[num]['verts'].to(self.device),
@@ -351,13 +266,11 @@ class MemoryDataset(Dataset):
             'render_imgs': imgs[None, ],
             'mv': mv[None, ],
             'mvp': mvp[None, ],
-            # 'campos': campos[None, ],
             'resolution': self.res,
             'resolution_img': self.res_img,
             'resolution_triview': self.res_triview,
             'normal': normal[None, ],
             'alpha': alpha[None, ],
-            # 'alpha_ctn': alpha_ctn[None, ],
             'depth': depth[None, ],
             'persp': persp,
             'triview_color': triview_color[None, ],

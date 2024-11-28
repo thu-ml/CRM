@@ -17,13 +17,11 @@ class Renderer(nn.Module):
         self.tet_grid_size = tet_grid_size
         self.camera_angle_num = camera_angle_num
         self.scale = scale
-        # self.geo_type = geo_type
         self.glctx = dr.RasterizeCudaContext()
 
         self.l1_loss = nn.L1Loss()
         self.mse_loss = nn.MSELoss()
 
-        # if self.geo_type == "flex":
         self.flexicubes = FlexiCubesGeometry(grid_res = self.tet_grid_size)
 
     def forward(self, data, sdf, deform, verts, tets, training=False, weight = None):
@@ -36,7 +34,6 @@ class Renderer(nn.Module):
         results = {}
         faces = None
         deform = torch.tanh(deform) / self.tet_grid_size
-        # if self.geo_type == "flex":
         deform = deform * 0.5
 
         v_deformed = verts + deform
@@ -65,32 +62,23 @@ class Renderer(nn.Module):
             alpha, depth, normal = render_mesh(self.glctx, vert, face, mvp, persp, resolution=(h, w))
 
             alpha_list.append(alpha)
-            # alpha_ctn_list.append(alpha_ctn)
             depth_list.append(depth)
             norm_list.append(normal)
-            # nc_list.append(normal_consistency(face_normals, faces[i]))
 
         alpha = torch.stack(alpha_list, dim=0)
-        # alpha_ctn = torch.stack(alpha_ctn_list, dim=0)
         depth = torch.stack(depth_list, dim=0)
         normal = torch.stack(norm_list, dim=0)
-        # results['nc_loss'] = torch.stack(nc_list, dim=0).mean()
 
         results['alpha'] = alpha
-        # results['alpha_ctn'] = alpha_ctn
         results['depth'] = depth
         results['normal'] = (normal + 1) / 2
 
-        # try:# remove these lines
         results['alpha_gt'] = data['alpha']
-        # results['alpha_ctn_gt'] = data['alpha_ctn']
         results['depth_gt'] = data['depth']
         results['normal_gt'] = (data['normal'] + 1) / 2
 
         results['silhouette_loss'] = self.mse_loss(results['alpha'], results['alpha_gt'])
         results['depth_loss'] = self.mse_loss(results['depth'] * results['alpha_gt'].clone().detach(), results['depth_gt'])
-        # except:
-            # pass
 
         return results, verts, faces
 
@@ -116,7 +104,6 @@ def render_mesh(ctx, verts, faces, mvp, persp, resolution):
     verts_clip = torch.bmm(
         F.pad(verts, pad=(0, 1), mode='constant', value=1.0).unsqueeze(0).repeat(mvp.shape[0], 1, 1),
         mvp.permute(0, 2, 1)).float()  # [B, N, 4]
-    # assert verts_clip.shape[0] > 0 and verts_clip.shape[1] > 0, print(verts_clip.shape, verts.shape)
     rast, rast_db = dr.rasterize(ctx, verts_clip, faces, resolution)
 
     alpha = (rast[..., 3:] > 0).float()
@@ -124,9 +111,6 @@ def render_mesh(ctx, verts, faces, mvp, persp, resolution):
     alpha = dr.antialias(alpha, rast, verts_clip, faces).clamp(0, 1)
     normal, _ = dr.interpolate(vn.unsqueeze(0).contiguous(), rast, faces)
     normal = safe_normalize(normal)
-
-    # if normal_only:
-    #     return normal, face_normals
 
     xyzw = verts_clip @ torch.inverse(persp.T)
     depth_ = (xyzw[..., 2] / xyzw[..., 3]).unsqueeze(-1)

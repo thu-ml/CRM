@@ -166,13 +166,6 @@ class FastDataset(Dataset):
         self._chosen = chosen
         self._chunk_future = self._chunk_load_executor.submit(self._load_chunk_inner)
 
-    # def get_state(self) -> str:
-    #     return self._chosen
-
-    # def set_state(self, chosen: str) -> None:
-    #     while self._chosen != chosen:
-    #         self.load_chunk()
-
     def __len__(self) -> int:
         return len(self._loaded_verts_list)
 
@@ -182,14 +175,6 @@ class FastDataset(Dataset):
 
         # Random rotation/translation matrix for optimization.
         batch = self.camera_angle_num
-        # if mv is None or imgs is None:
-        #     mv = torch.bmm(
-        #         utils.translate(0, 0, -self.cam_radius).repeat(batch, 1, 1),
-        #         utils.batch_random_rotation_translation(self.camera_angle_num, 0.25)
-        #     )
-        #     depths = torch.zeros((batch,) + tuple(self.res) + (1,))
-        #     imgs = torch.zeros((batch,) + tuple(self.res) + (3,))
-        # else:
         img_num = len(mv)
         index = random.sample(range(img_num), k=self.camera_angle_num)
 
@@ -201,13 +186,11 @@ class FastDataset(Dataset):
             proj_mtx.repeat(batch, 1, 1),
             mv
         )
-        # campos = torch.linalg.inv(mv)[:, :3, 3]
 
         return mv.to(self.device), mvp.to(self.device), imgs.to(self.device), \
             depths.to(self.device), proj_mtx.to(self.device), self.res
 
     def __getitem__(self, idx):
-        # if self.render_mode == 'blender':
         mv = self._loaded_render_color_cam_list[idx]
         imgs = self._loaded_render_color_img_list[idx]
         depths = self._loaded_render_depth_img_list[idx]
@@ -226,33 +209,14 @@ class FastDataset(Dataset):
         self.fovx = self._loaded_fovx_list[idx][0]
 
         mv, mvp, imgs, depths, persp, iter_res = self._random_scene(mv, imgs, depths)
-        # else:
-        #     mv, mvp, campos, imgs, depths, persp, iter_res = self._random_scene()
 
         verts = self._loaded_verts_list[idx]
 
-        # if self.dataset_name == 'Objaverse':
-            # if self.uuid2transform:
         transform = self.uuid2transform[self._loaded_uuid[idx]]
         transport = torch.tensor(transform['offset'], dtype=torch.float32)
         scale = torch.tensor(transform['scale'], dtype=torch.float32)
         verts = (verts * scale + transport) * self.scale / 0.5
-            # else:
-            #     transport = (verts.max(0)[0] + verts.min(0)[0]) / 2
-            #     verts -= transport
-            #     scale = 1 / max(verts.max(0)[0] - verts.min(0)[0])
 
-            #     verts *= self.scale / 0.5 * scale
-
-        # if self.dep_sill_mode == 'blender':
-        #     alpha = alpha_ctn = (depths > 0).float()
-        #     normal, face_normals = renderer.render_mesh(
-        #         self.glctx, verts.to(self.device),
-        #         self._loaded_faces_list[idx].to(self.device),
-        #         mvp, campos, persp, iter_res,
-        #         normal_only=True
-        #     )
-        # else:
         alpha, depth, normal = renderer.render_mesh(
             self.glctx, verts.to(self.device),
             self._loaded_faces_list[idx].to(self.device),
@@ -274,13 +238,11 @@ class FastDataset(Dataset):
             'render_imgs': imgs[None,],
             'mv': mv[None, ],
             'mvp': mvp[None, ],
-            # 'campos': campos[None, ],
             'resolution': self.res,
             'resolution_img': self.res_img,
             'resolution_triview': self.res_triview,
             'normal': normal[None, ],
             'alpha': alpha[None, ],
-            # 'alpha_ctn': alpha_ctn[None, ],
             'depth': depth[None, ],
             'persp': persp,
             'triview_color': triview_color[None,],
@@ -312,7 +274,7 @@ class FastDataset(Dataset):
         uuid = [str(pandas_chunk['uuid'][i]) for i in range(num_rows)]
 
         render_color_img_list, render_depth_img_list, render_color_cam_list, fovx_list = None, None, None, None
-        # if self.render_mode == 'blender':
+
         render_color_img_list = [torch.FloatTensor(np.stack(
             [pandas_chunk[f'render_color_img_list_{j}'][i] for j in range(self.img_num)], axis=-1)
         ) for i in range(num_rows)]
@@ -328,17 +290,16 @@ class FastDataset(Dataset):
         fovx_list = [torch.FloatTensor(np.array(pandas_chunk['fovx_list'][i])) for i in range(num_rows)]
 
         triview_color_img_list, triview_xyz_img_list, prompt = None, None, None
-        # if self.triview_color_dir != '':
+
         triview_color_img_list = [torch.FloatTensor(np.stack(
             [pandas_chunk[f'triview_color_img_list_{j}'][i] for j in range(6)], axis=-1)
         ) for i in range(num_rows)]
 
-        # if self.triview_xyz_dir != '':
+
         triview_xyz_img_list = [torch.FloatTensor(np.stack(
             [pandas_chunk[f'triview_xyz_img_list_{j}'][i] for j in range(6)], axis=-1)
         ) for i in range(num_rows)]
 
-        # if self.prompt_path != '':
         prompt = [str(pandas_chunk['prompt'][i]) for i in range(num_rows)]
 
         return str(chosen), verts_list, faces_list, \
@@ -367,11 +328,11 @@ class FastDataset(Dataset):
         if self.render_color_img_dir != '':
             render_color_img_dir = data['render_color_img_dir']
             render_color_cam_file = data['render_color_cam_file']
+
             # rotate
             verts[:, -1] = -verts[:, -1]
             verts = verts[:, [0, 2, 1]]
 
-            # if self.dataset_name == 'Objaverse':
             k, _, _, _, w2cs = pickle.load(io.BytesIO(await aread_file(render_color_cam_file)))
 
             fovx = np.array([2 * math.atan(k[0, 2] / k[0, 0])], dtype=np.float64)
@@ -404,25 +365,12 @@ class FastDataset(Dataset):
                 transform_list.append(w2c.reshape(-1))
                 img_list.append(img.reshape(-1))
 
-                # depth
-                # syncdreamer
-                # if os.path.exists(os.path.join(render_color_img_dir, f'{i:03d}-depth.png')):
-                # depth_name = f'{i:03d}-depth.png'
-                # dep = cv2.imread(os.path.join(render_color_img_dir, depth_name), cv2.IMREAD_UNCHANGED)
                 dep = depths[i]
 
                 # reference
                 # https://github.com/liuyuan-pal/SyncDreamer/blob/232a2ec22f0277b4bd429109fb34eaf8f61b13ad/eval_mesh.py#L16-L22
                 dep = dep.astype(np.float32) / 65535 * (DEPTH_MAX - DEPTH_MIN) + DEPTH_MIN
                 mask = (dep < DEPTH_VALID_MIN) | (dep > DEPTH_VALID_MAX)
-
-                # # cs
-                # elif os.path.exists(os.path.join(render_color_img_dir, f'depth_{i:03d}1.png')):
-                #     depth_name = f'{i:03d}-depth.png'
-                #     depth_path = os.path.join(render_color_img_dir, f'depth_{i:03d}1.png')
-
-                #     dep =(np.array(Image.open(depth_path))[:,:,0]- 120)* 0.5 / 63
-                #     mask = np.array(Image.open(depth_path))[:,:,0] == 255
 
                 dep = np.where(mask, 0., dep)
 
@@ -435,7 +383,7 @@ class FastDataset(Dataset):
 
         triview_imgs = None
         triview_xyzs = None
-        # if self.triview_color_dir != '' and self.triview_xyz_dir != '':
+
         img_list, xyz_list = [], []
         triview_color_dir = data['triview_color_dir']
         triview_xyz_dir = data['triview_xyz_dir']
@@ -444,22 +392,15 @@ class FastDataset(Dataset):
         xyz_paths = [os.path.join(triview_xyz_dir, f'xyz_new_{i:03d}.png') for i in range(6)]
 
         for i in range(6):
-            # BGR -> RGB
             color = buffer_to_cv2image(await aread_file(color_paths[i]))
             xyz = buffer_to_cv2image(await aread_file(xyz_paths[i]))
-            # raw = cv2.resize(colors[i], self.res_triview)
-            # xyz = cv2.resize(xyzs[i], self.res_triview)
+
             raw = cv2.resize(color, self.res_triview)
             xyz = cv2.resize(xyz, self.res_triview)
 
-            # mask = torch.tensor(raw[:, :, [-1]],
-                                # dtype=torch.float32).repeat(1, 1, 3) / 255
             img = torch.tensor(raw[:, :, [2, 1, 0, 3]],
                                 dtype=torch.float32) / 255
             xyz = torch.tensor(xyz, dtype=torch.float32) / 255
-
-            # img = img * mask
-            # xyz = xyz * mask
 
             img_list.append(img.reshape(-1))
             xyz_list.append(xyz.reshape(-1))
@@ -503,17 +444,14 @@ class FastDataset(Dataset):
         verts_list.append(data['verts'])
         faces_list.append(data['faces'])
 
-        # if self.render_color_img_dir != '':
         render_color_img_list.append(data['render_imgs'])
         render_depth_img_list.append(data['render_depths'])
         render_color_cam_list.append(data['transforms'])
         fovx_list.append(data['fovx'])
-        # if self.triview_color_dir != '':
+
         triview_color_img_list.append(data['triview_imgs'])
-        # if self.triview_xyz_dir != '':
         triview_xyz_img_list.append(data['triview_xyzs'])
 
-        # if self.prompt_path != '':
         prompt.append(data['prompt'])
 
     def prepare_metadata(self):
@@ -524,17 +462,10 @@ class FastDataset(Dataset):
                 if class_name.endswith('.json'):
                     continue
                 for object_name in tqdm(os.listdir(class_dir)):
-                    # if i > 999:
-                    #     break
-                    # if self.dataset_name == 'ShapeNet' and self.class_name == 'all':
-                    #     record = '/'.join([class_name, object_name])
-                    # elif self.dataset_name == 'Objaverse':
                     record = os.path.splitext(object_name)[0]
-                    # exclude no transform data
+
                     if record in self.objaverse_exclude:
                         continue
-                    # else:
-                    #     record = object_name
 
                     if (self.mode == 'train' and record in self.train_set) or \
                             (self.mode == 'val' and record in self.val_set) or \
@@ -543,7 +474,6 @@ class FastDataset(Dataset):
 
                         # load vertices and faces
                         gt_path = os.path.join(class_dir, object_name)
-                        # pcd_file = os.path.join(self.pcd_dir, record, 'pc_262144_131072.ply')
 
                         render_color_img_dir = os.path.join(self.render_color_img_dir, record)
                         render_color_cam_file = os.path.join(self.render_color_img_dir, record, 'meta.pkl')
@@ -579,16 +509,16 @@ class FastDataset(Dataset):
         shuffled_verts_list = [verts_list[i] for i in indices]
         shuffled_faces_list = [faces_list[i] for i in indices]
         shuffled_uuid = [uuid[i] for i in indices]
-        # if self.render_color_img_dir != '':
+
         shuffled_render_color_img_list = [render_color_img_list[i] for i in indices]
         shuffled_render_depth_img_list = [render_depth_img_list[i] for i in indices]
         shuffled_render_color_cam_list = [render_color_cam_list[i] for i in indices]
         shuffled_fovx_list = [fovx_list[i] for i in indices]
-        # if self.triview_color_dir != '':
+
         shuffled_triview_color_img_list = [triview_color_img_list[i] for i in indices]
-        # if self.triview_xyz_dir != '':
+
         shuffled_triview_xyz_img_list = [triview_xyz_img_list[i] for i in indices]
-        # if self.prompt_path != '':
+
         shuffled_prompt = [prompt[i] for i in indices]
 
         columns = {}
@@ -597,7 +527,6 @@ class FastDataset(Dataset):
             columns[f'verts_list_{i}'] = [verts[:, i] for verts in shuffled_verts_list]
             columns[f'faces_list_{i}'] = [faces[:, i] for faces in shuffled_faces_list]
 
-        # if self.render_color_img_dir != '':
         for i in range(self.img_num):
             columns[f'render_color_img_list_{i}'] = [
                 render_color_img[:, i] for render_color_img in
@@ -613,19 +542,18 @@ class FastDataset(Dataset):
             ]
         columns['fovx_list'] = shuffled_fovx_list
 
-        # if self.triview_color_dir != '':
         for i in range(6):
             columns[f'triview_color_img_list_{i}'.format(i)] = [
                 triview_color_img[:, i] for triview_color_img in
                 shuffled_triview_color_img_list
             ]
-        # if self.triview_xyz_dir != '':
+
         for i in range(6):
             columns[f'triview_xyz_img_list_{i}'.format(i)] = [
                 triview_xyz_img[:, i] for triview_xyz_img in
                 shuffled_triview_xyz_img_list
             ]
-        # if self.prompt_path != '':
+
         columns['prompt'] = shuffled_prompt
         parquet_writers[chunk_index].write_table(pa.table(columns))
         parquet_writers[chunk_index].close()
@@ -661,19 +589,19 @@ class FastDataset(Dataset):
                 for i in range(3):
                     dtypes.append((f'verts_list_{i}', pa.list_(pa.from_numpy_dtype(np.float32))))
                     dtypes.append((f'faces_list_{i}', pa.list_(pa.from_numpy_dtype(np.int64))))
-                # if self.render_color_img_dir != '':
+
                 for i in range(self.img_num):
                     dtypes.append((f'render_color_img_list_{i}', pa.list_(pa.from_numpy_dtype(np.float32))))
                     dtypes.append((f'render_depth_img_list_{i}', pa.list_(pa.from_numpy_dtype(np.float32))))
                     dtypes.append((f'render_color_cam_list_{i}', pa.list_(pa.from_numpy_dtype(np.float32))))
                 dtypes.append(('fovx_list', pa.list_(pa.from_numpy_dtype(np.float64))))
-                # if self.triview_color_dir != '':
+
                 for i in range(6):
                     dtypes.append((f'triview_color_img_list_{i}', pa.list_(pa.from_numpy_dtype(np.float32))))
-                # if self.triview_xyz_dir != '':
+
                 for i in range(6):
                     dtypes.append((f'triview_xyz_img_list_{i}', pa.list_(pa.from_numpy_dtype(np.float32))))
-                # if self.prompt_path != '':
+
                 dtypes.append(('prompt', pa.string()))
                 parquet_writers.append(pq.ParquetWriter(parquet_path, pa.schema(dtypes), compression='BROTLI'))
 

@@ -36,41 +36,33 @@ def train(args):
         specs = json.load(f)
 
     input_specs = specs['Input']
-    # task_mode = input_specs['task_mode']
-    # tet_grid_size = input_specs['tet_grid_size']
     dataset_type = input_specs.get('dataset_type', None)
 
     train_specs = specs['Train']
     num_epochs = train_specs['num_epochs']
-    # sup_mode = train_specs['mode']
     sample_points_num = train_specs['sample_points_num']
     batch_size = train_specs['batch_size']
     l_rate = train_specs['learning_rate']['init']
     warmup_iter = train_specs['warm_up']
     scheduler_decay = train_specs['decay']
     eva_iter = train_specs['eva_iter']
-    # lambda_nc = train_specs.get('lambda_nc', 0)
     grad_acc = train_specs.get('grad_acc', 1)
     lambda_lp = train_specs.get('lambda_lp', 0)
-    # lambda_wzy = train_specs.get('lambda_wzy', 0)
     save_chunk = train_specs.get('save_chunk')
 
     output_dirs = specs['Output']
     exp_name = Path(output_dirs['exp_name'])
 
-    # geo_type = specs['Train'].get('geo_type', 'dmtet')
-
     if not exp_name.exists():
         exp_name.mkdir(exist_ok=True)
 
-    # ensure output in one folder ( higher than 60% )
     if args.resume:
         exp_dir = Path(args.resume)
     else:
         exp_dir = exp_name / (time.strftime('%m_%d-%H_%M_%S', time.localtime(time.time() // 5 * 5)) + args.note)
         exp_dir.mkdir(exist_ok=True)
         shutil.copy(config_path, exp_dir)
-    #
+
     opt_rec_dir = exp_dir / 'opt_rec'
     opt_rec_dir.mkdir(exist_ok=True)
     cur_rec_dir = exp_dir / 'cur_rec'
@@ -88,8 +80,6 @@ def train(args):
             epc = checkpoint['epoch']
             chunk = checkpoint['chunk']
             chunk_num = checkpoint['chunk_num']
-            # assert chunk_num == input_specs['chunk_num']
-            # assert chunk == 0
             start = epc * chunk_num + chunk
             iter_all = checkpoint['itr_all']
             cham_dist_opt = checkpoint['cham_dist_opt']  # current best chamfer distance
@@ -187,22 +177,13 @@ def train(args):
             if len(dataset) == 0:
                 continue
 
-        # try:
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                     collate_fn=dataset.collate, shuffle=True)
         dataloader = accelerator.prepare(dataloader)
-        # except:
-        #     continue
 
         for data in dataloader:
             model.train()
-            # mvp = mvps[iter_all]
-            # pts = pcd_tr[:, itr * pt_b_size: (itr + 1) * pt_b_size].cuda()
-            #
 
-            # mvp = mvps[iter_all]
-            # pts = pcd_tr[:, itr * pt_b_size: (itr + 1) * pt_b_size].cuda()
-            #
             if accelerator.is_main_process:
                 print(f'Training@Epoch {epc}, Chunk {chunk}, Itr {iter_all}', flush=True)
 
@@ -220,7 +201,6 @@ def train(args):
             result['lap_loss'] = sum(lap_loss_list) / len(lap_loss_list)
             result['chamfer_loss'] = sum(chamfer_loss_list) / len(chamfer_loss_list)
 
-            # if train_specs['tex_sup_mode'] == 'blender':
             reso = result['albedo_list'].shape[-2]
             lpips_train = result['albedo_list'].view(
                 -1, result['albedo_list'].shape[-3], result['albedo_list'].shape[-2], result['albedo_list'].shape[-1]
@@ -237,7 +217,6 @@ def train(args):
 
             result['lpips_loss'] = lpips(lpips_train, lpips_gt)
 
-            # if sup_mode == 'rnd':
             # shape supervision I: rendered silhouette and depth losses
             loss = result['silhouette_loss']+ result['depth_loss'] + specs['Train']['lambda_smooth'] * result['lap_loss'] \
                 + train_specs['lambda_color'] * result['color_loss'] + lambda_lp *result['lpips_loss'] \
@@ -262,15 +241,10 @@ def train(args):
 
             if iter_all % grad_acc == 0:
                 optimizer.step()
-                scheduler.step()  # DJ optimization schedule
+                scheduler.step()
                 torch.cuda.empty_cache()
                 optimizer.zero_grad()
 
-            # normal = result['normal_image'][0].detach().cpu().numpy()
-            # cv2.imwrite(model.exp_dir.as_posix() + "/last_normal" +".png", normal*255)
-
-            # normal = result['normal_image'][0].detach().cpu().numpy()
-            # cv2.imwrite(model.exp_dir.as_posix() + "/last_normal" +".png", normal*255)
             accelerator.wait_for_everyone()
             if accelerator.is_main_process:
                 writer.add_scalar('train/silhouette', result['silhouette_loss'], iter_all)
@@ -280,8 +254,6 @@ def train(args):
                 writer.add_scalar('train/color', result['color_loss'], iter_all)
                 writer.add_scalar('train/lr', optimizer.param_groups[0]['lr'], iter_all)
                 writer.add_scalar('train/lpips', result['lpips_loss'], iter_all)
-                # writer.add_scalar('train/wzy', result['wzy_loss'], iter_all)
-                # if geo_type == 'flex':
                 writer.add_scalar('train/flex_weight', result['flex_weight_loss'], iter_all)
                 writer.add_scalar('train/flex_surf', result['flex_surf_loss'], iter_all)
 
@@ -290,9 +262,7 @@ def train(args):
                 if accelerator.is_main_process:
                     train_img_dir = exp_dir / 'train_img'
                     train_img_dir.mkdir(exist_ok=True)
-                    # try:
-                    #     albedos = result['albedo_list2'][0]
-                    # except:
+
                     albedos = result['albedo_list'][0]
                     albedo_tensor = torch.cat((albedos[0], albedos[1], albedos[2], albedos[3]), dim=1)
                     albedo_tensor = albedo_tensor[..., [2, 1, 0]].detach().cpu().numpy()
@@ -312,10 +282,8 @@ def train(args):
                 if accelerator.is_main_process:
                     # visualize
                     data_vis = next(dataloader_vis)
-                    # if task_mode != 'debug':
                     print(data_vis['uuid'],data_vis.get('prompt'))
 
-                    # tnew_list = [0,100,200,300,400,500,600,700,800,900,999]
                     with torch.no_grad():
                         result, verts, faces = accelerator.unwrap_model(model)(data_vis, glctx)
 
@@ -390,14 +358,7 @@ def eval_and_save(accelerator, writer, model, sample_points_num, iter_all, datas
                 gt_verts_list.append(gt_vert.cpu().numpy())
                 gt_faces_list.append(gt_face.cpu().numpy())
 
-                # if data_val.get('triview_color') is None:
-                #     triview_color_list.append(np.nan)
-                # else:
                 triview_color_list.append(data_val['triview_color'].cpu().numpy())
-
-                # if data_val.get('triview_xyz') is None:
-                #     triview_xyz_list.append(np.nan)
-                # else:
                 triview_xyz_list.append(data_val['triview_xyz'].cpu().numpy())
 
             chamfer_dist = accelerator.gather_for_metrics(chamfer_dist)
@@ -493,10 +454,6 @@ def eval_and_save(accelerator, writer, model, sample_points_num, iter_all, datas
                 shutil.move(opt_rec_dir / f'best_{mode}_params.pth', opt_rec_dir / f'2nd_{mode}_params.pth')
             torch.save(accelerator.unwrap_model(model).state_dict(), opt_rec_dir / f'best_{mode}_params.pth')
 
-        # # export mesh ( only eval_all )
-        # if type != '_all' or specs['ArchSpecs']['pc_enc'] == 'mix':
-        #     return
-
         with accelerator.split_between_processes(zip_data) as tmp_data:
             for j, ele in enumerate(tmp_data):
                 verts, faces, gt_verts, gt_faces, triview_color, triview_xyz = ele
@@ -553,6 +510,4 @@ if __name__ == '__main__':
         help='resume training from given checkpoint',
     )
     arguments = arg_parser.parse_args()
-    # torch.cuda.set_device(1)
-    # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     train(arguments)

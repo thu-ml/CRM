@@ -65,11 +65,7 @@ class CRM(nn.Module):
 
         self.ticker = 0
 
-        # self.spob = True  # whether to add sphere
         self.radius = specs['Train']['radius']  # used when spob
-        # self.denoising = False
-
-        # self.scheduler = DDIMScheduler.from_pretrained("stabilityai/stable-diffusion-2-1-base", subfolder="scheduler")
 
     def small_fwd(self, data):
         xyzs_list = []
@@ -80,29 +76,10 @@ class CRM(nn.Module):
 
             if xyzs.max() > 1.1:
                 xyzs = xyzs / 255
-                # print("fix 255 bug")
-            # if self.specs["Train"].get("random_bg", False):
-            #     crgb = 0.5#random.random()
-            #     cxyz = 0.5#random.random()
-            #     for j in range(6):
-            #         mask = torch.mean(xyzs[j], dim = 0, keepdim=False)
-            #         mask = (mask == 0)
-            #         for k in range(3):
-            #             color[j][k][mask] = crgb
-            #             xyzs[j][k][mask] = cxyz
-            # else:
-            # crgb = 0
-            # cxyz = 0
-
-            # shift = 0
-            # if random.random() < 0.5:
-            #     shift = int(self.specs["Train"].get("shift", 0))
 
             color_tensor1 = get_tri(color, dim=0, blender=True, rgb=True)
             xyzs_tensor1 = get_tri(xyzs, dim=0, blender=True, fix=True) # , fix = True
 
-            # print(color_tensor1.shape)
-            # print(color_tensor1.shape)
             color_list.append(color_tensor1)
             xyzs_list.append(xyzs_tensor1)
         color_tensor = torch.stack(color_list, dim=0)
@@ -114,16 +91,10 @@ class CRM(nn.Module):
             xyzs_tensor, [self.enc.plane_resolution, self.enc.plane_resolution*3], mode = "bilinear")
 
         # !Notice
-        all_tensor = torch.cat([color_tensor, xyzs_tensor], dim = 1)# *2 - 1
-
-        # triplane_feature0 = all_tensor
-        # triplane_feature1 = all_tensor
-        # return triplane_feature0, triplane_feature1
+        all_tensor = torch.cat([color_tensor, xyzs_tensor], dim = 1)
         return all_tensor
 
     def forward(self, data, ctx):
-        # if self.geo_type == "flex":
-        # use the number of data not batch size
         verts = self.renderer.flexicubes.verts.unsqueeze(0).repeat(len(data['verts']), 1, 1)
         tets = self.renderer.flexicubes.indices
 
@@ -159,10 +130,6 @@ class CRM(nn.Module):
 
         result, verts, faces = self.renderer(data, pred_sdf, deformation, verts, tets, weight=weight)
 
-        # sdf_pos = pred_sdf[pred_sdf>=0]
-        # sdf_neg = pred_sdf[pred_sdf<0]
-        # result["wzy_loss"] = (torch.abs(sdf_pos-1).sum() + torch.abs(sdf_neg+1).sum()) / (pred_sdf.shape[0]*pred_sdf.shape[1])
-
         resolution = data['resolution_img']
         color_gt = data['render_imgs']
         result['gt_render_imgs'] = data['render_imgs']
@@ -179,22 +146,19 @@ class CRM(nn.Module):
                 F.pad(vert, pad=(0, 1), mode='constant', value=1.0).unsqueeze(0).repeat(mvp.shape[0], 1, 1),
                 mvp.permute(0, 2, 1)).float()  # [B, N, 4]
             rast, rast_db = dr.rasterize(ctx, verts_clip, face, resolution)
-            # print(verts.shape, faces.shape)
+
             alpha, _ = dr.interpolate(torch.ones_like(vert[:, :1]).unsqueeze(0), rast, face)  # [1, H, W, 1]
             xyzs, _ = dr.interpolate(vert, rast, face)  # [1, H, W, 3]
-            # print(alpha.shape, xyzs.shape)
+
             xyzs = xyzs.view(-1, 3)
             mask = (alpha > 0).view(-1).detach()
-            # do the lighting here since we have normal from mesh now.
+
             albedo = torch.zeros_like(xyzs, dtype=torch.float32)
 
             albedo = albedo.view(-1, resolution[0], resolution[1], 3)
             albedo[:mvp_size] = albedo[:mvp_size] - 1
             albedo = albedo.view(-1, 3)
 
-            # print("4.0:{}".format(torch.cuda.memory_allocated(0)))
-
-            # print("4.0:{}".format(torch.cuda.memory_allocated(0)))
             if mask.any():
                 dec_d_pcd = self.decoder(tri_output[i].unsqueeze(0), xyzs[mask].unsqueeze(0))
                 masked_albedo = self.rgb_mlp(dec_d_pcd)
@@ -223,7 +187,6 @@ class CRM(nn.Module):
         return result, verts, faces
 
     def decode(self, data, tri_output):
-        # if self.geo_type == "flex":
         tet_verts = self.renderer.flexicubes.verts.unsqueeze(0)
         tet_indices = self.renderer.flexicubes.indices
 
@@ -231,7 +194,6 @@ class CRM(nn.Module):
         out = self.sdf_mlp(dec_verts)
 
         weight = None
-        # if self.geo_type == "flex":
         grid_feat = torch.index_select(input=dec_verts, index=self.renderer.flexicubes.indices.reshape(-1),dim=1)
         grid_feat = grid_feat.reshape(
             dec_verts.shape[0], self.renderer.flexicubes.indices.shape[0], 
@@ -241,7 +203,6 @@ class CRM(nn.Module):
         weight = weight * 0.1
 
         pred_sdf, deformation = out[..., 0], out[..., 1:]
-        # if self.spob:
         pred_sdf = pred_sdf + self.radius - torch.sqrt((tet_verts**2).sum(-1))
 
         _, verts, faces = self.renderer(data, pred_sdf, deformation, tet_verts, tet_indices, weight= weight)
@@ -261,27 +222,23 @@ class CRM(nn.Module):
     def render_color_img(self, verts, faces, data, ctx, mvp=None, idx=0):
         mvp = data['mvp'][idx] if mvp is None else mvp[0]
         res = data['resolution_img']
-        # print(mvp.shape, verts.shape, faces.shape, res)
         faces = faces.int()
         faces = faces[..., [2, 1, 0]]
         # rasterization
         verts_clip = torch.bmm(
             F.pad(verts, pad=(0, 1), mode='constant', value=1.0).repeat(mvp.shape[0], 1, 1),
             mvp.permute(0, 2, 1)).float()  # [B, N, 4]
-        # assert verts_clip.shape[0] > 0 and verts_clip.shape[1] > 0, print(verts_clip.shape, verts.shape)
         rast, _ = dr.rasterize(ctx, verts_clip, faces, res)
 
-        # print(verts.shape, faces.shape)
         alpha, _ = dr.interpolate(torch.ones_like(verts[0][:, :1]).unsqueeze(0), rast, faces) # [1, H, W, 1]
         xyzs, _ = dr.interpolate(verts[0], rast, faces) # [1, H, W, 3]
-        # print(alpha.shape, xyzs.shape)
         xyzs = xyzs.view(-1, 3)
         mask = (alpha > 0).view(-1).detach()
-        # do the lighting here since we have normal from mesh now.
+
         albedo = torch.zeros_like(xyzs, dtype=torch.float32) - 1
         if mask.any():
             tri_input = self.small_fwd(data)
-            tri_output = self.unet(tri_input)  # unet2 moved to trdgen main class
+            tri_output = self.unet(tri_input)
             masked_albedo = self.rgb_mlp(self.decoder(tri_output, xyzs[mask].unsqueeze(0))).squeeze(0)
             albedo[mask] = masked_albedo.float()
         albedo = albedo.view(-1, alpha.shape[1], alpha.shape[2], 3)
@@ -291,41 +248,32 @@ class CRM(nn.Module):
         xyzs[mask2] -= 1
         xyzs = xyzs.view(alpha.shape[0], alpha.shape[1], alpha.shape[2], 3)
         xyzs = (xyzs * 0.5 + 0.5).clip(0, 1)
-        # print(albedo.shape)
         return albedo, xyzs
 
     def visualize(self, result, epc, chunk, color_fine, rdr_img_dir, iter_all):
         # After each epoch, visualize and evaluate
         # epc: current index of epochs
         normal = result['normal'][0].detach().cpu().numpy()
-        # normal_gt = result['normal_gt'][0].detach().cpu().numpy()
         alpha = (result['alpha'][0].detach().cpu().numpy() * 255).astype('uint8')
         alpha_gt = (result['alpha_gt'][0].detach().cpu().numpy() * 255).astype('uint8')
 
-        # succ = True
-        # try:
+
         depth = trans_depth(result['depth'])
         depth_gt = trans_depth(result['depth_gt'])
-        # except:
-        #     succ = False
+
         color_fine = color_fine[..., [2, 1, 0]].detach().cpu().numpy()
         color_fine = cv2.resize(color_fine[0], alpha.shape[1:3])[None, ...]
 
         color_fine_gt = result.get('color_gt')[0, ..., [2, 1, 0]].cpu().numpy()
         color_fine_gt = cv2.resize(color_fine_gt[0], alpha.shape[1:3])[None, ...]
-        # if succ == True:
+
         img = np.concatenate((alpha, alpha_gt, depth, depth_gt), axis=2)
-        # else:
-        #     img = np.concatenate((alpha, alpha_gt, alpha, alpha_gt), axis=2)
-        # if succ == True:
+
         cv2.imwrite(rdr_img_dir.as_posix() + f"/ep{epc}-chunk{chunk}-iter{iter_all}.png",
                     np.concatenate((normal[0], color_fine[0], color_fine_gt[0],
                                     cv2.applyColorMap(np.repeat(depth[0],3,axis=2).astype(np.uint8), cv2.COLORMAP_HOT)/255,
                                     cv2.applyColorMap(np.repeat(depth_gt[0],3,axis=2).astype(np.uint8), cv2.COLORMAP_HOT)/255),
                                     axis=1)*255)
-        # else:
-        #     cv2.imwrite(rdr_img_dir.as_posix() + f"/ep{epc}-chunk{chunk}-iter{iter_all}.png",
-        # np.concatenate((normal[0], color_fine[0], color_fine_gt[0]), axis=1)*255)
 
         tri_input = result['tri_input'][0].mean(0).unsqueeze(-1)
         tri_input = (tri_input - tri_input.min()) / (tri_input.max() - tri_input.min())
@@ -483,4 +431,4 @@ class CRM(nn.Module):
         img = img * (1 - mask) + dilate_img * mask
         img = img.clip(0, 255).astype(np.uint8)
 
-        cv2.imwrite(f'{out_path}.png', img[..., [2, 1, 0]])
+        cv2.imwrite(f'{out_dir}.png', img[..., [2, 1, 0]])
