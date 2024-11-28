@@ -202,7 +202,7 @@ def load_transform(filepath):
     if filepath == '':
         return None
     uuid2transform = {}
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf8') as f:
         data = json.load(f)
         for item in data:
             uuid = os.path.splitext(item['name'])[0]

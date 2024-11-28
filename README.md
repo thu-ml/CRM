@@ -73,6 +73,7 @@ Multiprocess multi-threads chunks generation
 ```bash
 python make_chunk.py -c specs_xxxx.json -p 4 # change to proper number of process for your machine
 ```
+log info will be recorded in the log.log in the root directory.
 
 ### Step 2. Train
 Use the same config json file in **step.1** for training

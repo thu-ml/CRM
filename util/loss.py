@@ -1,11 +1,12 @@
+'''
+Training loss
+'''
 import torch
 import kaolin
 
 
 def laplacian_uniform(verts, faces):
-
     V = verts.shape[0]
-    F = faces.shape[0]
 
     # Neighbor indices
     ii = faces[:, [1, 2, 0]].contiguous().flatten()
@@ -23,11 +24,6 @@ def laplacian_uniform(verts, faces):
     # The coalesce operation sums the duplicate indices, resulting in the correct diagonal
     L = torch.sparse_coo_tensor(idx, values, (V, V)).coalesce()
 
-    # CYF Note: added for genuine Laplacian loss computation
-    # cor_idx = torch.asarray(range(V), device=verts.device)
-    # cor_idx = torch.stack((cor_idx, cor_idx), dim=0)
-    # cor_val = torch.asarray([1./L[i, i] for i in range(V)], device=verts.device, dtype=torch.float)
-    # cor_mat = torch.sparse_coo_tensor(cor_idx, cor_val, (V, V))
     cor_idx = torch.stack((diag_idx, diag_idx), dim=0)
     cor_mat_ = torch.sparse_coo_tensor(cor_idx, adj_values, (V, V)).coalesce()
     cor_mat = torch.sparse_coo_tensor(cor_mat_.indices(), 1. / cor_mat_.values(), (V, V))
@@ -80,7 +76,6 @@ def compute_edge_to_face_mapping(attr_idx):
 
 @torch.cuda.amp.autocast(enabled=False)
 def normal_consistency(face_normals, t_pos_idx):
-
     tris_per_edge = compute_edge_to_face_mapping(t_pos_idx)
 
     # Fetch normals for both faces sharind an edge
@@ -89,7 +84,7 @@ def normal_consistency(face_normals, t_pos_idx):
 
     # Compute error metric based on normal difference
     term = torch.clamp(torch.sum(n0 * n1, -1, keepdim=True), min=-1.0, max=1.0)
-    term = (1.0 - term)
+    term = 1.0 - term
 
     return torch.mean(torch.abs(term))
 

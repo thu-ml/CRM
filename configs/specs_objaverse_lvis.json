@@ -2,7 +2,6 @@
   "Model": "TrDGen",
 
   "Input": {
-    "task_mode": "batch",
     "mesh_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis_mesh",
     "render_img_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis",
     "blender_transform": "/home/yudajiang/datasets/Objaverse/normalize_anno/meta_data_new.json",
@@ -26,62 +25,22 @@
     "resolution_triview": [256, 256]
   },
 
-  "Pretrain": {
-    "mode": null,
-    "warm_up": 0,
-    "batch_size": 1024,
-    "warmup_iter": 0,
-    "decay": 0.0000,
-    "num_iter": 1000,
-    "sdf_threshold": 0.1,
-    "sdf_scale": 10,
-    "batch_infer": false,
-    "lr": 1e-4,
-    "radius": 0.5
-  },
-
   "Train": {
     "mode": "rnd",
     "num_epochs": 500,
-    "grad_acc": 1,
     "warm_up": 0,
     "decay": 0.000,
     "learning_rate": {
       "init": 1e-4
     },
     "sample_points_num": 20000,
-    "query_sample_points_num": 60000,
     "batch_size": 1,
-    "eva_iter": 80,
+    "eva_iter": 100,
     "save_chunk": 50,
-    "eva_all_epoch": 0,
-    "tex_sup_mode": "blender",
-    "dep&sill_sup_mode": "blender",
     "lambda_smooth": 1,
-    "lambda_nc": 0,
     "lambda_lp": 0.2,
     "lambda_color": 2,
-    "lambda_l2": 0.00,
-    "lambda_wzy": 0.0,
-    "exp_uv_mesh": false,
-    "doub": false,
-    "random_bg": false,
-    "sd_mode": null,
-    "sd_cfg": 100,
-    "sd_lambda": 10,
-    "shift": 0,
-    "geo_type": "flex",
-    "init_mdl_path": null
-  },
-
-  "ArchSpecs": {
-    "pc_enc": "img",
-    "unet_type": "diffusers",
-    "use_3D_aware": false,
-    "fea_concat": false,
-    "mlp_bias": true,
-    "q_plane": false,
-    "gt_triimg": true
+    "radius": 0.5
   },
 
   "EncoderSpecs": {
