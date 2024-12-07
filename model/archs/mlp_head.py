@@ -37,4 +37,17 @@ class RgbMlp(nn.Module):
 
         return out
 
-    
+
+class WeightMlp(nn.Module):
+    def __init__(self, input_dim, hidden_dim=512, bias=True):
+        super().__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+
+        self.fc1 = nn.Linear(input_dim, hidden_dim, bias=bias)
+        self.fc2 = nn.Linear(hidden_dim, 21, bias=bias)
+
+    def forward(self, input):
+        x = F.silu(self.fc1(input))
+        out = self.fc2(x)
+        return out

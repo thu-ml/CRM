@@ -1,6 +1,12 @@
 import numpy as np
 import torch
 import random
+import json
+import os
+
+# objaverse
+DEPTH_MAX, DEPTH_MIN = 2.4, 0.6
+DEPTH_VALID_MAX, DEPTH_VALID_MIN = 2.37, 0.63
 
 
 # Reworked so this matches gluPerspective / glm::perspective, using fovy
@@ -192,3 +198,13 @@ def get_tri(triview_color, dim = 1, blender=True, c = 0, scale=0.95, shift = 0, 
     color_tensor_gt = torch.cat((color_tensor1_gt, color_tensor2_gt), dim = dim)
     return color_tensor_gt
 
+def load_transform(filepath):
+    if filepath == '':
+        return None
+    uuid2transform = {}
+    with open(filepath, 'r', encoding='utf8') as f:
+        data = json.load(f)
+        for item in data:
+            uuid = os.path.splitext(item['name'])[0]
+            uuid2transform[uuid] = item
+    return uuid2transform

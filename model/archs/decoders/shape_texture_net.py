@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class TetTexNet(nn.Module):
-    def __init__(self, plane_reso=64, padding=0.1, fea_concat=True):
+    def __init__(self, plane_reso=64, padding=0.1, fea_concat=False):
         super().__init__()
         # self.c_dim = c_dim
         self.plane_reso = plane_reso

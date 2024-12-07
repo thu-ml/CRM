@@ -1,0 +1,71 @@
+{
+  "Model": "TrDGen",
+
+  "Input": {
+    "mesh_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis_mesh",
+    "render_img_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis",
+    "blender_transform": "/home/yudajiang/datasets/Objaverse/normalize_anno/meta_data_new.json",
+    "triview_color_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis_newdata",
+    "triview_xyz_dir": "/home/yudajiang/datasets/Objaverse/objaverse_lvis_newxyz",
+    "prompt_path": "/home/yudajiang/datasets/Objaverse/Objaverse_anno.csv",
+    "dataset_name": "Objaverse",
+    "img_num": 16,
+    "split_dir": "data_split/objaverse_lvis",
+    "class": "lvis",
+    "camera_angle_num": 8,
+    "tet_grid_size": 90,
+    "validate_num": 16,
+    "dataset_type": "filesystem",
+    "chunk_path": "data/Objaverse",
+    "chunk_size": 256,
+    "scale": 0.95,
+    "radius": 3,
+    "resolution": [256, 256],
+    "resolution_img": [256, 256],
+    "resolution_triview": [256, 256]
+  },
+
+  "Train": {
+    "mode": "rnd",
+    "num_epochs": 500,
+    "warm_up": 0,
+    "decay": 0.000,
+    "learning_rate": {
+      "init": 1e-4
+    },
+    "sample_points_num": 20000,
+    "batch_size": 1,
+    "eva_iter": 100,
+    "save_chunk": 50,
+    "lambda_smooth": 1,
+    "lambda_lp": 0.2,
+    "lambda_color": 2,
+    "radius": 0.5
+  },
+
+  "EncoderSpecs": {
+    "latent_size": 32,
+    "hidden_dim": 64,
+    "color_output": 64,
+    "unet_kwargs": {
+      "depth": 6,
+      "merge_mode": "concat",
+      "start_filts": 64
+    },
+    "plane_resolution": 256
+  },
+
+  "DecoderSpecs": {
+    "c_dim": 32,
+    "unet_kwargs": {
+      "depth": 6,
+      "merge_mode": "concat",
+      "start_filts": 64
+    },
+    "plane_resolution": 256
+  },
+
+  "Output": {
+    "exp_name": "exp-objaverse"
+  }
+}
